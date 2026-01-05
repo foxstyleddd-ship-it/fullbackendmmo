@@ -72,6 +72,11 @@ class APIService {
     this.clearAuthToken();
   }
 
+  async register(data: { email: string; username: string; password: string }): Promise<any> {
+    const response = await this.client.post<APIResponse<any>>('/auth/register', data);
+    return response.data.data;
+  }
+
   // Characters
   async searchCharacters(query: string): Promise<Character[]> {
     // For now, we'll use the account's characters endpoint
@@ -89,6 +94,15 @@ class APIService {
   async getCharacter(id: string): Promise<CharacterDetail> {
     const response = await this.client.get<APIResponse<CharacterDetail>>(`/characters/${id}`);
     return response.data.data;
+  }
+
+  async createCharacter(data: { name: string; house: string; appearance: any }): Promise<Character> {
+    const response = await this.client.post<APIResponse<Character>>('/characters', data);
+    return response.data.data;
+  }
+
+  async deleteCharacter(id: string): Promise<void> {
+    await this.client.delete(`/characters/${id}`);
   }
 
   // Inventory
