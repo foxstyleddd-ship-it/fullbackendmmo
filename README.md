@@ -2,6 +2,19 @@
 
 Backend autoritaire pour MMO roleplay Harry Potter sous Unreal Engine + ACF (Ascent Combat Framework).
 
+## 🚀 État du Projet
+
+**Sprint 1 en cours** - Infrastructure de base et services core
+
+✅ Architecture documentée
+✅ Schéma de base de données complet
+✅ API REST spécifiée
+✅ Protocole WebSocket défini
+✅ Structure du projet créée
+✅ Docker Compose configuré
+✅ Migrations de base de données
+🚧 Implémentation Go en cours
+
 ## Principe Fondamental
 
 **Le client envoie des intentions, le serveur valide et renvoie des diffs d'état.**
@@ -72,17 +85,78 @@ Le grade (1-100) détermine les permissions: sorts, zones, items.
 | 8-10 | Formation avancée | Azkaban, tier 5 |
 | 11+ | Maître/Expert | Tout |
 
-## Quick Start (Dev)
+## 🏁 Quick Start (Dev)
+
+### Prérequis
+
+- Docker & Docker Compose
+- Go 1.22+ (pour développement local)
+- Make
+
+### Démarrage Rapide
 
 ```bash
-# Démarrer l'infrastructure
-docker-compose up -d postgres redis nats
+# 1. Cloner le repository
+git clone <repo-url>
+cd fullbackendmmo
 
-# Appliquer les migrations
+# 2. Copier le fichier d'environnement
+cp .env.example .env
+
+# 3. Démarrer l'infrastructure (PostgreSQL, Redis, NATS, Prometheus, Grafana)
+make dev
+
+# 4. Appliquer les migrations de base de données
 make migrate-up
 
-# Lancer le serveur
-make dev
+# 5. (Optionnel) Seed la base de données avec des données de test
+make seed
+
+# 6. Lancer le serveur API (quand implémenté)
+make run-api
+
+# 7. Dans un autre terminal, lancer le Zone Server (quand implémenté)
+make run-zone
+```
+
+### Accès aux Services
+
+| Service | URL | Credentials |
+|---------|-----|-------------|
+| PostgreSQL | `localhost:5432` | user: `hpmmo`, password: `hpmmo_dev_password` |
+| Redis | `localhost:6379` | password: `hpmmo_redis_password` |
+| NATS | `localhost:4222` | - |
+| Prometheus | `http://localhost:9090` | - |
+| Grafana | `http://localhost:3000` | user: `admin`, password: `admin` |
+| API Server | `http://localhost:8080` | (when running) |
+| Zone Server | `ws://localhost:8081` | (when running) |
+
+### Commandes Utiles
+
+```bash
+# Voir les logs
+make logs
+
+# Se connecter à PostgreSQL
+make psql
+
+# Se connecter à Redis
+make redis-cli
+
+# Lancer les tests
+make test
+
+# Lancer le linter
+make lint
+
+# Formater le code
+make fmt
+
+# Nettoyer les builds
+make clean
+
+# Arrêter tous les services
+make dev-down
 ```
 
 ## Commandes GM
