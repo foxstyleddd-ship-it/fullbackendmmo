@@ -1,0 +1,73 @@
+import { useState } from 'react';
+import { apiService } from '../services/api';
+import CharacterManager from './CharacterManager';
+import AuditLogsViewer from './AuditLogsViewer';
+
+interface DashboardProps {
+  onLogout: () => void;
+}
+
+type Tab = 'characters' | 'audit';
+
+export default function Dashboard({ onLogout }: DashboardProps) {
+  const [activeTab, setActiveTab] = useState<Tab>('characters');
+  const user = apiService.getCurrentUser();
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">🎮 HP MMO Admin Panel</h1>
+              <p className="text-sm text-gray-600">
+                Logged in as: <span className="font-medium">{user?.username}</span> ({user?.role})
+              </p>
+            </div>
+            <button
+              onClick={onLogout}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Navigation Tabs */}
+      <div className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <nav className="flex space-x-8">
+            <button
+              onClick={() => setActiveTab('characters')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
+                activeTab === 'characters'
+                  ? 'border-purple-500 text-purple-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Character Management
+            </button>
+            <button
+              onClick={() => setActiveTab('audit')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
+                activeTab === 'audit'
+                  ? 'border-purple-500 text-purple-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Audit Logs
+            </button>
+          </nav>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {activeTab === 'characters' && <CharacterManager />}
+        {activeTab === 'audit' && <AuditLogsViewer />}
+      </main>
+    </div>
+  );
+}

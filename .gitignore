@@ -51,3 +51,8 @@ secrets/
 # Build artifacts
 dist/
 tmp/
+
+# Admin Panel (Node/React)
+admin-panel/node_modules/
+admin-panel/dist/
+admin-panel/.env
