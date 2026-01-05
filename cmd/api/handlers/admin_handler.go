@@ -8,22 +8,25 @@ import (
 	"github.com/google/uuid"
 	"github.com/hp-mmo/backend/internal/audit"
 	"github.com/hp-mmo/backend/internal/character"
+	"github.com/hp-mmo/backend/internal/inventory"
 	"github.com/hp-mmo/backend/internal/pkg/middleware"
 )
 
 // AdminHandler handles admin and GM commands
 type AdminHandler struct {
-	charService  *character.Service
-	charRepo     *character.Repository
-	auditService *audit.Service
+	charService      *character.Service
+	charRepo         *character.Repository
+	auditService     *audit.Service
+	inventoryService *inventory.Service
 }
 
 // NewAdminHandler creates a new admin handler
-func NewAdminHandler(charService *character.Service, charRepo *character.Repository, auditService *audit.Service) *AdminHandler {
+func NewAdminHandler(charService *character.Service, charRepo *character.Repository, auditService *audit.Service, inventoryService *inventory.Service) *AdminHandler {
 	return &AdminHandler{
-		charService:  charService,
-		charRepo:     charRepo,
-		auditService: auditService,
+		charService:      charService,
+		charRepo:         charRepo,
+		auditService:     auditService,
+		inventoryService: inventoryService,
 	}
 }
 
@@ -198,17 +201,12 @@ func (h *AdminHandler) executeTeleport(c *gin.Context, adminID, targetID uuid.UU
 	}, nil
 }
 
-// executeGrantItem handles the grantitem command (stubbed for Sprint 2)
+// executeGrantItem handles the grantitem command
 func (h *AdminHandler) executeGrantItem(c *gin.Context, adminID, targetID uuid.UUID, params map[string]interface{}, ip, userAgent string) (*ExecuteCommandResponse, error) {
-	// Parse item ID
-	itemIDStr, ok := params["item_id"].(string)
-	if !ok || itemIDStr == "" {
-		return nil, fmt.Errorf("item_id parameter is required")
-	}
-
-	itemID, err := uuid.Parse(itemIDStr)
-	if err != nil {
-		return nil, fmt.Errorf("invalid item_id: %w", err)
+	// Parse item definition ID (string, not UUID)
+	itemDefID, ok := params["item_def_id"].(string)
+	if !ok || itemDefID == "" {
+		return nil, fmt.Errorf("item_def_id parameter is required (use item definition ID like 'elder_wand')")
 	}
 
 	// Parse quantity
@@ -224,20 +222,25 @@ func (h *AdminHandler) executeGrantItem(c *gin.Context, adminID, targetID uuid.U
 		return nil, fmt.Errorf("character not found: %w", err)
 	}
 
-	// TODO: Implement actual inventory system in Sprint 2
-	// For now, just log the audit
-	if err := h.auditService.LogItemGrant(c.Request.Context(), adminID, targetID, itemID, quantity, ip, userAgent); err != nil {
+	// Grant item using inventory service
+	err = h.inventoryService.GrantItem(c.Request.Context(), targetID, itemDefID, quantity, adminID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to grant item: %w", err)
+	}
+
+	// Log audit (the inventory service already creates a transaction ledger)
+	// We use UUID zero for the item_id in audit since it's an item_def_id
+	if err := h.auditService.LogItemGrant(c.Request.Context(), adminID, targetID, uuid.Nil, quantity, ip, userAgent); err != nil {
 		fmt.Printf("Failed to log item grant audit: %v\n", err)
 	}
 
 	return &ExecuteCommandResponse{
 		Success: true,
-		Message: fmt.Sprintf("Granted %d of item %s to character %s (Note: Inventory system pending Sprint 2)", quantity, itemID.String(), char.Name),
+		Message: fmt.Sprintf("Granted %d x %s to character %s", quantity, itemDefID, char.Name),
 		Data: gin.H{
 			"character_id": targetID.String(),
-			"item_id":      itemID.String(),
+			"item_def_id":  itemDefID,
 			"quantity":     quantity,
-			"note":         "Inventory system will be implemented in Sprint 2",
 		},
 	}, nil
 }

@@ -330,6 +330,107 @@ curl -X GET "http://localhost:8080/v1/admin/audit/my-actions?limit=50" \
 
 ---
 
+## 🎒 Tester l'Inventaire et l'Économie (Sprint 2)
+
+### 1. Consulter l'Inventaire d'un Personnage
+
+```bash
+curl -X GET "http://localhost:8080/v1/characters/<CHARACTER_ID>/inventory" \
+  -H "Authorization: Bearer <CHARACTER_TOKEN>"
+```
+
+**Réponse:**
+```json
+{
+  "success": true,
+  "data": {
+    "character_id": "...",
+    "items": [
+      {
+        "id": "...",
+        "item_def_id": "elder_wand",
+        "quantity": 1,
+        "display_name": "Elder Wand",
+        "description": "The most powerful wand ever created",
+        "item_type": "weapon",
+        "equipment_slot": "wand",
+        "is_stackable": false,
+        "base_value": 10000
+      }
+    ],
+    "count": 1
+  }
+}
+```
+
+### 2. Consulter l'Équipement
+
+```bash
+curl -X GET "http://localhost:8080/v1/characters/<CHARACTER_ID>/equipment" \
+  -H "Authorization: Bearer <CHARACTER_TOKEN>"
+```
+
+### 3. Équiper un Item
+
+```bash
+curl -X POST "http://localhost:8080/v1/characters/<CHARACTER_ID>/equip" \
+  -H "Authorization: Bearer <CHARACTER_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "inventory_item_id": "<ITEM_UUID>",
+    "slot": "wand"
+  }'
+```
+
+**Slots:** `wand`, `robe`, `hat`, `cloak`, `amulet`, `ring_left`, `ring_right`, `boots`, `gloves`, `broom`
+
+### 4. Acheter un Item chez un Vendeur
+
+```bash
+curl -X POST "http://localhost:8080/v1/characters/<CHARACTER_ID>/purchase" \
+  -H "Authorization: Bearer <CHARACTER_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "item_def_id": "healing_potion",
+    "quantity": 3,
+    "vendor_id": "madam_pomfrey"
+  }'
+```
+
+**Validation:** Transaction atomique avec idempotence, vérification de monnaie, stack automatique
+
+### 5. Vendre un Item (Prix = 50% base_value)
+
+```bash
+curl -X POST "http://localhost:8080/v1/characters/<CHARACTER_ID>/sell" \
+  -H "Authorization: Bearer <CHARACTER_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "inventory_item_id": "<ITEM_UUID>",
+    "quantity": 2
+  }'
+```
+
+### 6. GM: Donner un Item (Fonctionnel!)
+
+```bash
+curl -X POST http://localhost:8080/v1/admin/commands/execute \
+  -H "Authorization: Bearer <ADMIN_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "command": "grantitem",
+    "target_id": "<CHARACTER_ID>",
+    "parameters": {
+      "item_def_id": "elder_wand",
+      "quantity": 1
+    }
+  }'
+```
+
+**Items disponibles** (après seed): `elder_wand`, `healing_potion`, `nimbus_2000`, etc.
+
+---
+
 ## 🎮 Tester le Zone Server (WebSocket)
 
 Utiliser un client WebSocket (exemple avec `websocat` ou client JavaScript).
@@ -559,8 +660,9 @@ lsof -i :8081
 
 ---
 
-## 📋 Checklist de Validation Sprint 1
+## 📋 Checklist de Validation
 
+### Sprint 1 ✅
 - [x] Un joueur peut s'inscrire
 - [x] Un joueur peut se connecter
 - [x] Un joueur peut créer un personnage avec maison
@@ -575,28 +677,42 @@ lsof -i :8081
 - [x] Un GM peut téléporter un personnage
 - [x] Les actions GM sont auditées avec IP et timestamp
 - [x] Les audit logs sont consultables par caractère et par admin
-- [ ] Tests d'intégration (TODO)
+
+### Sprint 2 ✅
+- [x] Système d'inventaire complet (models, repo, service)
+- [x] Transactions atomiques avec idempotency keys
+- [x] Consulter inventaire et équipement
+- [x] Équiper/déséquiper des items
+- [x] Acheter des items chez vendeurs (validation monnaie)
+- [x] Vendre des items (50% base value)
+- [x] GM peut donner des items (grantitem fonctionnel)
+- [x] Transaction ledger pour audit économique
+- [x] Stack automatique pour items stackables
+- [x] Validation capacité inventaire (max 100 slots)
+- [x] WebSocket messages pour inventory/currency updates
+
+### TODO
+- [ ] Tests d'intégration
+- [ ] Handler WebSocket pour achats en jeu
 
 ---
 
 ## 🎯 Prochaines Étapes
 
-### Sprint 1 (derniers items)
-- [x] Endpoints admin pour GM commands (setgrade, teleport, grantitem)
-- [x] Audit logging pour toutes les actions admin
-- [ ] Tests d'intégration
-- [ ] Documentation OpenAPI/Swagger
+### Sprints Complétés ✅
+- ✅ **Sprint 1**: Auth, Characters, Zone Server, GM Commands, Audit Logging
+- ✅ **Sprint 2**: Inventory, Economy, Transactions, Equipment
 
-### Sprint 2
-- [ ] Système d'inventaire complet
-- [ ] Transactions atomiques
-- [ ] State diff système
-- [ ] Équipement et stats recalculées
-
-### Sprint 3
-- [ ] Actions de combat validées
+### Sprint 3 (Suggestions)
+- [ ] Zone WebSocket handlers pour transactions en jeu
+- [ ] Trade system (échange entre joueurs)
+- [ ] Quest system (backend state tracking)
+- [ ] Achievement/progression tracking
+- [ ] Combat action validation
 - [ ] Cooldown système
-- [ ] Anti-cheat basique
+- [ ] Anti-cheat validation layer
+- [ ] Tests d'intégration complets
+- [ ] Documentation OpenAPI/Swagger
 - [ ] Dashboards Grafana
 
 ---

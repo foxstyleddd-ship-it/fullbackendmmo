@@ -19,6 +19,10 @@ const (
 	MsgTypeMoveIntent       MessageType = "MOVE_INTENT"
 	MsgTypeInteractIntent   MessageType = "INTERACT_INTENT"
 	MsgTypeCombatActionIntent MessageType = "COMBAT_ACTION_INTENT"
+	MsgTypePurchaseItem     MessageType = "PURCHASE_ITEM"
+	MsgTypeSellItem         MessageType = "SELL_ITEM"
+	MsgTypeEquipItem        MessageType = "EQUIP_ITEM"
+	MsgTypeUnequipItem      MessageType = "UNEQUIP_ITEM"
 
 	// Server → Client
 	MsgTypeConnectAck       MessageType = "CONNECT_ACK"
@@ -27,6 +31,8 @@ const (
 	MsgTypePresenceUpdate   MessageType = "PRESENCE_UPDATE"
 	MsgTypeStateDiff        MessageType = "STATE_DIFF"
 	MsgTypePositionCorrection MessageType = "POSITION_CORRECTION"
+	MsgTypeInventoryUpdate  MessageType = "INVENTORY_UPDATE"
+	MsgTypeCurrencyUpdate   MessageType = "CURRENCY_UPDATE"
 	MsgTypeError            MessageType = "ERROR"
 	MsgTypeKick             MessageType = "KICK"
 )
@@ -168,4 +174,41 @@ type Player struct {
 	Stats       Stats
 	ConnectedAt time.Time
 	LastActivity time.Time
+}
+
+// PurchaseItemPayload represents PURCHASE_ITEM message payload
+type PurchaseItemPayload struct {
+	ItemDefID string `json:"item_def_id"`
+	Quantity  int    `json:"quantity"`
+	VendorID  string `json:"vendor_id"`
+}
+
+// SellItemPayload represents SELL_ITEM message payload
+type SellItemPayload struct {
+	InventoryItemID string `json:"inventory_item_id"`
+	Quantity        int    `json:"quantity"`
+}
+
+// EquipItemPayload represents EQUIP_ITEM message payload
+type EquipItemPayload struct {
+	InventoryItemID string `json:"inventory_item_id"`
+	Slot            string `json:"slot"`
+}
+
+// UnequipItemPayload represents UNEQUIP_ITEM message payload
+type UnequipItemPayload struct {
+	Slot string `json:"slot"`
+}
+
+// InventoryUpdatePayload represents INVENTORY_UPDATE message payload
+type InventoryUpdatePayload struct {
+	Action   string      `json:"action"` // added, removed, updated
+	ItemDefID string     `json:"item_def_id"`
+	Quantity int         `json:"quantity"`
+	Data     interface{} `json:"data,omitempty"`
+}
+
+// CurrencyUpdatePayload represents CURRENCY_UPDATE message payload
+type CurrencyUpdatePayload struct {
+	Currencies map[string]int64 `json:"currencies"`
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/hp-mmo/backend/internal/audit"
 	"github.com/hp-mmo/backend/internal/auth"
 	"github.com/hp-mmo/backend/internal/character"
+	"github.com/hp-mmo/backend/internal/inventory"
 	"github.com/hp-mmo/backend/internal/pkg/config"
 	"github.com/hp-mmo/backend/internal/pkg/db"
 	"github.com/hp-mmo/backend/internal/pkg/logger"
@@ -56,6 +57,7 @@ func main() {
 	authRepo := auth.NewRepository(database)
 	charRepo := character.NewRepository(database)
 	auditRepo := audit.NewRepository(database)
+	inventoryRepo := inventory.NewRepository(database)
 
 	// Initialize services
 	jwtService := auth.NewJWTService(
@@ -67,11 +69,13 @@ func main() {
 	authService := auth.NewService(authRepo, jwtService, redisClient, cfg.Session.Duration)
 	charService := character.NewService(charRepo)
 	auditService := audit.NewService(auditRepo)
+	inventoryService := inventory.NewService(inventoryRepo, charRepo, database)
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService, charRepo)
 	charHandler := handlers.NewCharacterHandler(charService, jwtService)
-	adminHandler := handlers.NewAdminHandler(charService, charRepo, auditService)
+	adminHandler := handlers.NewAdminHandler(charService, charRepo, auditService, inventoryService)
+	inventoryHandler := handlers.NewInventoryHandler(inventoryService)
 
 	// Setup Gin
 	if cfg.Env == "production" {
@@ -113,6 +117,14 @@ func main() {
 			charGroup.GET("/:id", charHandler.GetCharacter)
 			charGroup.POST("/:id/select", charHandler.SelectCharacter)
 			charGroup.DELETE("/:id", charHandler.DeleteCharacter)
+
+			// Inventory routes (nested under character)
+			charGroup.GET("/:id/inventory", inventoryHandler.GetInventory)
+			charGroup.GET("/:id/equipment", inventoryHandler.GetEquipment)
+			charGroup.POST("/:id/equip", inventoryHandler.EquipItem)
+			charGroup.POST("/:id/unequip", inventoryHandler.UnequipItem)
+			charGroup.POST("/:id/purchase", inventoryHandler.PurchaseItem)
+			charGroup.POST("/:id/sell", inventoryHandler.SellItem)
 		}
 
 		// Admin routes (authenticated + role check)
