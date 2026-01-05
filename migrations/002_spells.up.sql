@@ -54,7 +54,7 @@ CREATE INDEX idx_character_spells_proficiency ON character_spells(proficiency_le
 CREATE TRIGGER update_spell_definitions_updated_at
     BEFORE UPDATE ON spell_definitions
     FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+    EXECUTE FUNCTION update_updated_at();
 
 -- Seed common spells
 INSERT INTO spell_definitions (id, name, description, spell_school, required_grade, mana_cost, cooldown_seconds, properties) VALUES
