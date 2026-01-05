@@ -175,7 +175,7 @@ func toNullString(s string) sql.NullString {
 	return sql.NullString{String: s, Valid: true}
 }
 
-func toNullUUID(nu NullUUID) interface{} {
+func toNullUUID(nu uuid.NullUUID) interface{} {
 	if !nu.Valid {
 		return nil
 	}

@@ -161,7 +161,7 @@ func (h *CharacterHandler) SelectCharacter(c *gin.Context) {
 	sessionID, _ := c.Get("session_id")
 
 	// Get permissions for this character
-	permissions := h.charService.(*character.Service).getPermissionsForGrade(char.Grade, char.House)
+	permissions := h.charService.GetPermissionsForGrade(char.Grade, char.House)
 
 	// Generate new token with character info
 	accessToken, err := h.jwtService.GenerateCharacterToken(

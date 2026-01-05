@@ -49,7 +49,7 @@ func (s *Service) GetCharacterDetail(ctx context.Context, characterID uuid.UUID)
 	}
 
 	// Get permissions (based on grade and house)
-	permissions := s.getPermissionsForGrade(char.Grade, char.House)
+	permissions := s.GetPermissionsForGrade(char.Grade, char.House)
 
 	return &CharacterDetailResponse{
 		Character:   *char,
@@ -168,8 +168,8 @@ func (s *Service) DeleteCharacter(ctx context.Context, characterID uuid.UUID) er
 	return s.repo.SoftDeleteCharacter(ctx, characterID)
 }
 
-// getPermissionsForGrade returns permissions based on grade and house
-func (s *Service) getPermissionsForGrade(grade int, house string) []string {
+// GetPermissionsForGrade returns permissions based on grade and house
+func (s *Service) GetPermissionsForGrade(grade int, house string) []string {
 	permissions := []string{}
 
 	// Spell tier permissions based on grade

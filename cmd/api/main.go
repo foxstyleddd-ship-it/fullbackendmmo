@@ -22,6 +22,7 @@ import (
 	"github.com/hp-mmo/backend/internal/pkg/logger"
 	"github.com/hp-mmo/backend/internal/pkg/middleware"
 	pkgredis "github.com/hp-mmo/backend/internal/pkg/redis"
+	"github.com/hp-mmo/backend/internal/spell"
 )
 
 func main() {
@@ -58,6 +59,7 @@ func main() {
 	charRepo := character.NewRepository(database)
 	auditRepo := audit.NewRepository(database)
 	inventoryRepo := inventory.NewRepository(database)
+	spellRepo := spell.NewRepository(database)
 
 	// Initialize services
 	jwtService := auth.NewJWTService(
@@ -70,12 +72,14 @@ func main() {
 	charService := character.NewService(charRepo)
 	auditService := audit.NewService(auditRepo)
 	inventoryService := inventory.NewService(inventoryRepo, charRepo, database)
+	spellService := spell.NewService(spellRepo, charRepo, database)
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService, charRepo)
 	charHandler := handlers.NewCharacterHandler(charService, jwtService)
-	adminHandler := handlers.NewAdminHandler(charService, charRepo, auditService, inventoryService)
+	adminHandler := handlers.NewAdminHandler(charService, charRepo, auditService, inventoryService, spellService)
 	inventoryHandler := handlers.NewInventoryHandler(inventoryService)
+	spellHandler := handlers.NewSpellHandler(spellService)
 
 	// Setup Gin
 	if cfg.Env == "production" {
@@ -108,6 +112,9 @@ func main() {
 			authGroup.POST("/logout", middleware.AuthMiddleware(jwtService), authHandler.Logout)
 		}
 
+		// Spell routes (public - browse available spells)
+		v1.GET("/spells", spellHandler.GetAllSpells)
+
 		// Character routes (authenticated)
 		charGroup := v1.Group("/characters")
 		charGroup.Use(middleware.AuthMiddleware(jwtService))
@@ -125,6 +132,9 @@ func main() {
 			charGroup.POST("/:id/unequip", inventoryHandler.UnequipItem)
 			charGroup.POST("/:id/purchase", inventoryHandler.PurchaseItem)
 			charGroup.POST("/:id/sell", inventoryHandler.SellItem)
+
+			// Spell routes (nested under character)
+			charGroup.GET("/:id/spells", spellHandler.GetCharacterSpells)
 		}
 
 		// Admin routes (authenticated + role check)

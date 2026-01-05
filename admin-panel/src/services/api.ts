@@ -1,0 +1,187 @@
+import axios, { type AxiosInstance } from 'axios';
+import type {
+  LoginRequest,
+  LoginResponse,
+  Character,
+  CharacterDetail,
+  InventoryItem,
+  EquipmentLoadout,
+  AuditLog,
+  GMCommandRequest,
+  APIResponse,
+  SpellDefinition,
+  CharacterSpell,
+} from '../types';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/v1';
+
+class APIService {
+  private client: AxiosInstance;
+  private token: string | null = null;
+
+  constructor() {
+    this.client = axios.create({
+      baseURL: API_BASE_URL,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    // Load token from localStorage
+    this.token = localStorage.getItem('access_token');
+    if (this.token) {
+      this.setAuthToken(this.token);
+    }
+
+    // Response interceptor for handling errors
+    this.client.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          this.logout();
+          window.location.href = '/';
+        }
+        return Promise.reject(error);
+      }
+    );
+  }
+
+  setAuthToken(token: string) {
+    this.token = token;
+    this.client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    localStorage.setItem('access_token', token);
+  }
+
+  clearAuthToken() {
+    this.token = null;
+    delete this.client.defaults.headers.common['Authorization'];
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('user');
+  }
+
+  // Authentication
+  async login(data: LoginRequest): Promise<LoginResponse> {
+    const response = await this.client.post<APIResponse<LoginResponse>>('/auth/login', data);
+    const loginData = response.data.data;
+    this.setAuthToken(loginData.access_token);
+    localStorage.setItem('user', JSON.stringify(loginData.account));
+    return loginData;
+  }
+
+  logout() {
+    this.clearAuthToken();
+  }
+
+  // Characters
+  async searchCharacters(query: string): Promise<Character[]> {
+    // For now, we'll use the account's characters endpoint
+    // In production, you'd want a dedicated search endpoint
+    const response = await this.client.get<APIResponse<Character[]>>('/characters');
+    const characters = response.data.data;
+    if (query) {
+      return characters.filter(c =>
+        c.name.toLowerCase().includes(query.toLowerCase())
+      );
+    }
+    return characters;
+  }
+
+  async getCharacter(id: string): Promise<CharacterDetail> {
+    const response = await this.client.get<APIResponse<CharacterDetail>>(`/characters/${id}`);
+    return response.data.data;
+  }
+
+  // Inventory
+  async getInventory(characterId: string): Promise<{character_id: string, items: InventoryItem[], count: number}> {
+    const response = await this.client.get<APIResponse<{character_id: string, items: InventoryItem[], count: number}>>(`/characters/${characterId}/inventory`);
+    return response.data.data;
+  }
+
+  async getEquipment(characterId: string): Promise<EquipmentLoadout> {
+    const response = await this.client.get<APIResponse<EquipmentLoadout>>(`/characters/${characterId}/equipment`);
+    return response.data.data;
+  }
+
+  // GM Commands
+  async executeCommand(data: GMCommandRequest): Promise<any> {
+    const response = await this.client.post<APIResponse<any>>('/admin/commands/execute', data);
+    return response.data.data;
+  }
+
+  async setGrade(characterId: string, grade: number): Promise<any> {
+    return this.executeCommand({
+      command: 'setgrade',
+      target_id: characterId,
+      parameters: { grade },
+    });
+  }
+
+  async teleport(characterId: string, zoneId: string, x = 0, y = 0, z = 0): Promise<any> {
+    return this.executeCommand({
+      command: 'teleport',
+      target_id: characterId,
+      parameters: { zone_id: zoneId, x, y, z },
+    });
+  }
+
+  async grantItem(characterId: string, itemDefId: string, quantity = 1): Promise<any> {
+    return this.executeCommand({
+      command: 'grantitem',
+      target_id: characterId,
+      parameters: { item_def_id: itemDefId, quantity },
+    });
+  }
+
+  async grantSpell(characterId: string, spellId: string): Promise<any> {
+    return this.executeCommand({
+      command: 'grantspell',
+      target_id: characterId,
+      parameters: { spell_id: spellId },
+    });
+  }
+
+  async removeSpell(characterId: string, spellId: string): Promise<any> {
+    return this.executeCommand({
+      command: 'removespell',
+      target_id: characterId,
+      parameters: { spell_id: spellId },
+    });
+  }
+
+  // Spells
+  async getAllSpells(): Promise<{spells: SpellDefinition[], count: number}> {
+    const response = await this.client.get<APIResponse<{spells: SpellDefinition[], count: number}>>('/spells');
+    return response.data.data;
+  }
+
+  async getCharacterSpells(characterId: string): Promise<{character_id: string, spells: CharacterSpell[], count: number}> {
+    const response = await this.client.get<APIResponse<{character_id: string, spells: CharacterSpell[], count: number}>>(`/characters/${characterId}/spells`);
+    return response.data.data;
+  }
+
+  // Audit Logs
+  async getCharacterAuditLogs(characterId: string, limit = 50): Promise<{character_id: string, logs: AuditLog[], count: number}> {
+    const response = await this.client.get<APIResponse<{character_id: string, logs: AuditLog[], count: number}>>(
+      `/admin/audit/character/${characterId}?limit=${limit}`
+    );
+    return response.data.data;
+  }
+
+  async getMyAuditLogs(limit = 50): Promise<{admin_id: string, logs: AuditLog[], count: number}> {
+    const response = await this.client.get<APIResponse<{admin_id: string, logs: AuditLog[], count: number}>>(
+      `/admin/audit/my-actions?limit=${limit}`
+    );
+    return response.data.data;
+  }
+
+  isAuthenticated(): boolean {
+    return !!this.token;
+  }
+
+  getCurrentUser() {
+    const userStr = localStorage.getItem('user');
+    return userStr ? JSON.parse(userStr) : null;
+  }
+}
+
+export const apiService = new APIService();

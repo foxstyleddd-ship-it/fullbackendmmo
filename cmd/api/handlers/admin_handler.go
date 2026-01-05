@@ -10,6 +10,7 @@ import (
 	"github.com/hp-mmo/backend/internal/character"
 	"github.com/hp-mmo/backend/internal/inventory"
 	"github.com/hp-mmo/backend/internal/pkg/middleware"
+	"github.com/hp-mmo/backend/internal/spell"
 )
 
 // AdminHandler handles admin and GM commands
@@ -18,15 +19,17 @@ type AdminHandler struct {
 	charRepo         *character.Repository
 	auditService     *audit.Service
 	inventoryService *inventory.Service
+	spellService     *spell.Service
 }
 
 // NewAdminHandler creates a new admin handler
-func NewAdminHandler(charService *character.Service, charRepo *character.Repository, auditService *audit.Service, inventoryService *inventory.Service) *AdminHandler {
+func NewAdminHandler(charService *character.Service, charRepo *character.Repository, auditService *audit.Service, inventoryService *inventory.Service, spellService *spell.Service) *AdminHandler {
 	return &AdminHandler{
 		charService:      charService,
 		charRepo:         charRepo,
 		auditService:     auditService,
 		inventoryService: inventoryService,
+		spellService:     spellService,
 	}
 }
 
@@ -90,6 +93,10 @@ func (h *AdminHandler) ExecuteCommand(c *gin.Context) {
 		response, err = h.executeTeleport(c, adminUUID, targetID, req.Parameters, ip, userAgent)
 	case "grantitem":
 		response, err = h.executeGrantItem(c, adminUUID, targetID, req.Parameters, ip, userAgent)
+	case "grantspell":
+		response, err = h.executeGrantSpell(c, adminUUID, targetID, req.Parameters, ip, userAgent)
+	case "removespell":
+		response, err = h.executeRemoveSpell(c, adminUUID, targetID, req.Parameters, ip, userAgent)
 	default:
 		middleware.ErrorResponse(c, http.StatusBadRequest, "UNKNOWN_COMMAND", fmt.Sprintf("Unknown command: %s", req.Command), nil)
 		return
@@ -241,6 +248,74 @@ func (h *AdminHandler) executeGrantItem(c *gin.Context, adminID, targetID uuid.U
 			"character_id": targetID.String(),
 			"item_def_id":  itemDefID,
 			"quantity":     quantity,
+		},
+	}, nil
+}
+
+// executeGrantSpell handles the grantspell command
+func (h *AdminHandler) executeGrantSpell(c *gin.Context, adminID, targetID uuid.UUID, params map[string]interface{}, ip, userAgent string) (*ExecuteCommandResponse, error) {
+	// Parse spell ID
+	spellID, ok := params["spell_id"].(string)
+	if !ok || spellID == "" {
+		return nil, fmt.Errorf("spell_id parameter is required (e.g., 'lumos', 'expelliarmus')")
+	}
+
+	// Get character info
+	char, err := h.charRepo.GetCharacterByID(c.Request.Context(), targetID)
+	if err != nil {
+		return nil, fmt.Errorf("character not found: %w", err)
+	}
+
+	// Grant spell using spell service (bypasses requirements for GM)
+	err = h.spellService.GrantSpellBypass(c.Request.Context(), targetID, spellID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to grant spell: %w", err)
+	}
+
+	// Log admin action
+	details := fmt.Sprintf("Granted spell %s to character %s", spellID, char.Name)
+	_ = h.auditService.LogAdminAction(c.Request.Context(), adminID, targetID, "grant_spell", details, true, nil, ip, userAgent)
+
+	return &ExecuteCommandResponse{
+		Success: true,
+		Message: fmt.Sprintf("Granted spell '%s' to character %s", spellID, char.Name),
+		Data: gin.H{
+			"character_id": targetID.String(),
+			"spell_id":     spellID,
+		},
+	}, nil
+}
+
+// executeRemoveSpell handles the removespell command
+func (h *AdminHandler) executeRemoveSpell(c *gin.Context, adminID, targetID uuid.UUID, params map[string]interface{}, ip, userAgent string) (*ExecuteCommandResponse, error) {
+	// Parse spell ID
+	spellID, ok := params["spell_id"].(string)
+	if !ok || spellID == "" {
+		return nil, fmt.Errorf("spell_id parameter is required")
+	}
+
+	// Get character info
+	char, err := h.charRepo.GetCharacterByID(c.Request.Context(), targetID)
+	if err != nil {
+		return nil, fmt.Errorf("character not found: %w", err)
+	}
+
+	// Remove spell
+	err = h.spellService.RemoveSpell(c.Request.Context(), targetID, spellID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to remove spell: %w", err)
+	}
+
+	// Log admin action
+	details := fmt.Sprintf("Removed spell %s from character %s", spellID, char.Name)
+	_ = h.auditService.LogAdminAction(c.Request.Context(), adminID, targetID, "remove_spell", details, true, nil, ip, userAgent)
+
+	return &ExecuteCommandResponse{
+		Success: true,
+		Message: fmt.Sprintf("Removed spell '%s' from character %s", spellID, char.Name),
+		Data: gin.H{
+			"character_id": targetID.String(),
+			"spell_id":     spellID,
 		},
 	}, nil
 }
