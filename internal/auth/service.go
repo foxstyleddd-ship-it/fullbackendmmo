@@ -107,6 +107,7 @@ func (s *Service) Login(ctx context.Context, req LoginRequest, ip string) (*Logi
 		ID:        sessionID,
 		AccountID: account.ID,
 		ClientIP:  toNullString(ip),
+		Metadata:  []byte("{}"),
 	}
 
 	if err := s.repo.CreateSession(ctx, session); err != nil {
