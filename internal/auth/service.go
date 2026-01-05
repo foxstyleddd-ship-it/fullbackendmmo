@@ -239,16 +239,3 @@ func (s *Service) ValidateSession(ctx context.Context, sessionID string) (bool, 
 
 	return exists, nil
 }
-
-// Helper functions
-func toNullString(s string) NullString {
-	if s == "" {
-		return NullString{}
-	}
-	return NullString{String: s, Valid: true}
-}
-
-type NullString struct {
-	String string
-	Valid  bool
-}

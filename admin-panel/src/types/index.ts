@@ -116,3 +116,53 @@ export interface APIResponse<T> {
     details?: any;
   };
 }
+
+export type SpellSchool =
+  | 'charms'
+  | 'transfiguration'
+  | 'potions'
+  | 'defense_against_dark_arts'
+  | 'dark_arts'
+  | 'herbology'
+  | 'care_of_magical_creatures'
+  | 'divination'
+  | 'ancient_runes'
+  | 'arithmancy';
+
+export interface SpellDefinition {
+  id: string;
+  name: string;
+  description: string;
+  spell_school: SpellSchool;
+  required_grade: number;
+  required_house?: string;
+  mana_cost: number;
+  cooldown_seconds: number;
+  is_forbidden: boolean;
+  icon_path: string;
+  properties: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CharacterSpell {
+  id: string;
+  character_id: string;
+  spell_id: string;
+  learned_at: string;
+  times_cast: number;
+  proficiency_level: number;
+  // Spell definition fields (merged)
+  name: string;
+  description: string;
+  spell_school: SpellSchool;
+  required_grade: number;
+  required_house?: string;
+  mana_cost: number;
+  cooldown_seconds: number;
+  is_forbidden: boolean;
+  icon_path: string;
+  properties: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+}

@@ -9,6 +9,8 @@ import type {
   AuditLog,
   GMCommandRequest,
   APIResponse,
+  SpellDefinition,
+  CharacterSpell,
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/v1';
@@ -128,6 +130,33 @@ class APIService {
       target_id: characterId,
       parameters: { item_def_id: itemDefId, quantity },
     });
+  }
+
+  async grantSpell(characterId: string, spellId: string): Promise<any> {
+    return this.executeCommand({
+      command: 'grantspell',
+      target_id: characterId,
+      parameters: { spell_id: spellId },
+    });
+  }
+
+  async removeSpell(characterId: string, spellId: string): Promise<any> {
+    return this.executeCommand({
+      command: 'removespell',
+      target_id: characterId,
+      parameters: { spell_id: spellId },
+    });
+  }
+
+  // Spells
+  async getAllSpells(): Promise<{spells: SpellDefinition[], count: number}> {
+    const response = await this.client.get<APIResponse<{spells: SpellDefinition[], count: number}>>('/spells');
+    return response.data.data;
+  }
+
+  async getCharacterSpells(characterId: string): Promise<{character_id: string, spells: CharacterSpell[], count: number}> {
+    const response = await this.client.get<APIResponse<{character_id: string, spells: CharacterSpell[], count: number}>>(`/characters/${characterId}/spells`);
+    return response.data.data;
   }
 
   // Audit Logs

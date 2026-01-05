@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { apiService } from '../services/api';
-import type { CharacterDetail, InventoryItem } from '../types';
+import type { CharacterDetail, InventoryItem, SpellDefinition, CharacterSpell } from '../types';
 
 export default function CharacterManager() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCharacter, setSelectedCharacter] = useState<CharacterDetail | null>(null);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [characterSpells, setCharacterSpells] = useState<CharacterSpell[]>([]);
+  const [availableSpells, setAvailableSpells] = useState<SpellDefinition[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
 
@@ -14,6 +16,7 @@ export default function CharacterManager() {
   const [teleportZone, setTeleportZone] = useState('hogwarts_main');
   const [itemDefId, setItemDefId] = useState('');
   const [itemQuantity, setItemQuantity] = useState('1');
+  const [selectedSpellId, setSelectedSpellId] = useState('');
 
   const zones = [
     'hogwarts_main', 'hogsmeade', 'forbidden_forest', 'quidditch_pitch',
@@ -24,6 +27,19 @@ export default function CharacterManager() {
     'elder_wand', 'holly_wand', 'healing_potion', 'mana_potion',
     'nimbus_2000', 'firebolt', 'invisibility_cloak', 'felix_felicis'
   ];
+
+  // Load available spells on mount
+  useEffect(() => {
+    const loadSpells = async () => {
+      try {
+        const data = await apiService.getAllSpells();
+        setAvailableSpells(data.spells);
+      } catch (error) {
+        console.error('Failed to load spells:', error);
+      }
+    };
+    loadSpells();
+  }, []);
 
   const searchCharacter = async () => {
     if (!searchQuery) return;
@@ -49,13 +65,15 @@ export default function CharacterManager() {
     setLoading(true);
 
     try {
-      const [character, inventoryData] = await Promise.all([
+      const [character, inventoryData, spellData] = await Promise.all([
         apiService.getCharacter(characterId),
         apiService.getInventory(characterId),
+        apiService.getCharacterSpells(characterId),
       ]);
 
       setSelectedCharacter(character);
       setInventory(inventoryData.items);
+      setCharacterSpells(spellData.spells);
       setNewGrade(character.grade.toString());
     } catch (error: any) {
       setMessage({ type: 'error', text: 'Failed to load character details' });
@@ -119,6 +137,45 @@ export default function CharacterManager() {
       setInventory(inventoryData.items);
     } catch (error: any) {
       setMessage({ type: 'error', text: error.response?.data?.error?.message || 'Failed to grant item' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGrantSpell = async () => {
+    if (!selectedCharacter || !selectedSpellId) return;
+
+    setLoading(true);
+    try {
+      await apiService.grantSpell(selectedCharacter.id, selectedSpellId);
+      const spell = availableSpells.find(s => s.id === selectedSpellId);
+      setMessage({ type: 'success', text: `Granted spell: ${spell?.name || selectedSpellId}` });
+
+      // Reload spells
+      const spellData = await apiService.getCharacterSpells(selectedCharacter.id);
+      setCharacterSpells(spellData.spells);
+      setSelectedSpellId('');
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.response?.data?.error?.message || 'Failed to grant spell' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveSpell = async (spellId: string) => {
+    if (!selectedCharacter) return;
+
+    setLoading(true);
+    try {
+      await apiService.removeSpell(selectedCharacter.id, spellId);
+      const spell = characterSpells.find(s => s.spell_id === spellId);
+      setMessage({ type: 'success', text: `Removed spell: ${spell?.name || spellId}` });
+
+      // Reload spells
+      const spellData = await apiService.getCharacterSpells(selectedCharacter.id);
+      setCharacterSpells(spellData.spells);
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.response?.data?.error?.message || 'Failed to remove spell' });
     } finally {
       setLoading(false);
     }
@@ -282,6 +339,68 @@ export default function CharacterManager() {
                   </button>
                 </div>
               </div>
+            </div>
+
+            {/* Grant Spell */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h3 className="text-lg font-semibold mb-4">Grant Spell</h3>
+              <div className="space-y-3">
+                <select
+                  value={selectedSpellId}
+                  onChange={(e) => setSelectedSpellId(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg text-sm"
+                >
+                  <option value="">Select spell...</option>
+                  {availableSpells.map(spell => (
+                    <option key={spell.id} value={spell.id}>
+                      {spell.name} ({spell.spell_school}) - Grade {spell.required_grade}
+                      {spell.is_forbidden && ' [FORBIDDEN]'}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleGrantSpell}
+                  disabled={loading || !selectedSpellId}
+                  className="w-full px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg disabled:opacity-50"
+                >
+                  Grant Spell
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Spells */}
+          <div className="bg-white rounded-lg shadow p-6 lg:col-span-2">
+            <h3 className="text-lg font-semibold mb-4">Learned Spells ({characterSpells.length} spells)</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {characterSpells.map(spell => (
+                <div key={spell.id} className="border rounded-lg p-3 hover:shadow-md transition relative">
+                  <div className="font-medium text-sm flex items-center justify-between">
+                    <span>{spell.name}</span>
+                    {spell.is_forbidden && <span className="text-xs bg-red-600 text-white px-2 py-0.5 rounded">FORBIDDEN</span>}
+                  </div>
+                  <div className="text-xs text-gray-600 mt-1">
+                    {spell.spell_school.replace(/_/g, ' ')}
+                  </div>
+                  <div className="text-xs mt-2 space-y-1">
+                    <div>Mana: {spell.mana_cost} | CD: {spell.cooldown_seconds}s</div>
+                    <div>Proficiency: {spell.proficiency_level}/10 | Cast: {spell.times_cast}x</div>
+                    <div>Required Grade: {spell.required_grade}</div>
+                  </div>
+                  <button
+                    onClick={() => handleRemoveSpell(spell.spell_id)}
+                    disabled={loading}
+                    className="mt-2 w-full px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded disabled:opacity-50"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+              {characterSpells.length === 0 && (
+                <div className="text-gray-500 text-sm col-span-full text-center py-4">
+                  No spells learned
+                </div>
+              )}
             </div>
           </div>
 

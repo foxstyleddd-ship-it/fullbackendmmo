@@ -33,7 +33,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	account, err := h.authService.Register(c.Request.Context(), req)
+	_, err := h.authService.Register(c.Request.Context(), req)
 	if err != nil {
 		if err.Error() == "email already registered" || err.Error() == "username already taken" {
 			middleware.ErrorResponse(c, http.StatusConflict, "CONFLICT", err.Error(), nil)
