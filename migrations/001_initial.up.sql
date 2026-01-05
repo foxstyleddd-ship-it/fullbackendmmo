@@ -381,7 +381,7 @@ CREATE INDEX idx_sanctions_account ON sanctions(account_id);
 CREATE INDEX idx_sanctions_character ON sanctions(character_id);
 CREATE INDEX idx_sanctions_type ON sanctions(sanction_type);
 CREATE INDEX idx_sanctions_active ON sanctions(account_id, sanction_type)
-    WHERE lifted_at IS NULL AND (expires_at IS NULL OR expires_at > NOW());
+    WHERE lifted_at IS NULL;
 
 -- TABLE: sessions
 CREATE TABLE sessions (
