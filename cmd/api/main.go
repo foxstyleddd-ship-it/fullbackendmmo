@@ -13,6 +13,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/hp-mmo/backend/cmd/api/handlers"
+	"github.com/hp-mmo/backend/internal/audit"
 	"github.com/hp-mmo/backend/internal/auth"
 	"github.com/hp-mmo/backend/internal/character"
 	"github.com/hp-mmo/backend/internal/pkg/config"
@@ -51,10 +52,12 @@ func main() {
 	}
 	defer redisClient.Close()
 
-	// Initialize services
+	// Initialize repositories
 	authRepo := auth.NewRepository(database)
 	charRepo := character.NewRepository(database)
+	auditRepo := audit.NewRepository(database)
 
+	// Initialize services
 	jwtService := auth.NewJWTService(
 		cfg.JWT.Secret,
 		cfg.JWT.AccessTokenDuration,
@@ -63,10 +66,12 @@ func main() {
 
 	authService := auth.NewService(authRepo, jwtService, redisClient, cfg.Session.Duration)
 	charService := character.NewService(charRepo)
+	auditService := audit.NewService(auditRepo)
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService, charRepo)
 	charHandler := handlers.NewCharacterHandler(charService, jwtService)
+	adminHandler := handlers.NewAdminHandler(charService, charRepo, auditService)
 
 	// Setup Gin
 	if cfg.Env == "production" {
@@ -115,12 +120,18 @@ func main() {
 		adminGroup.Use(middleware.AuthMiddleware(jwtService))
 		adminGroup.Use(middleware.RequireRole("gm", "admin", "superadmin"))
 		{
-			// GM commands will be added here
 			adminGroup.GET("/health", func(c *gin.Context) {
 				middleware.SuccessResponse(c, http.StatusOK, gin.H{
 					"message": "Admin API ready",
 				})
 			})
+
+			// GM Commands
+			adminGroup.POST("/commands/execute", adminHandler.ExecuteCommand)
+
+			// Audit Logs
+			adminGroup.GET("/audit/character/:id", adminHandler.GetCharacterAuditLogs)
+			adminGroup.GET("/audit/my-actions", adminHandler.GetAdminAuditLogs)
 		}
 	}
 

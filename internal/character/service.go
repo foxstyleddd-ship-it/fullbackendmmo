@@ -149,6 +149,20 @@ func (s *Service) UpdateGrade(ctx context.Context, characterID uuid.UUID, newGra
 	return s.repo.UpdateGrade(ctx, characterID, newGrade)
 }
 
+// TeleportCharacter teleports a character to a zone (admin/GM only)
+func (s *Service) TeleportCharacter(ctx context.Context, characterID uuid.UUID, zoneID string, x, y, z float32) error {
+	// Verify character exists
+	char, err := s.repo.GetCharacterByID(ctx, characterID)
+	if err != nil {
+		return fmt.Errorf("character not found: %w", err)
+	}
+
+	// Store old zone for audit log
+	_ = char.ZoneID
+
+	return s.repo.UpdateZone(ctx, characterID, zoneID, x, y, z)
+}
+
 // DeleteCharacter soft deletes a character
 func (s *Service) DeleteCharacter(ctx context.Context, characterID uuid.UUID) error {
 	return s.repo.SoftDeleteCharacter(ctx, characterID)

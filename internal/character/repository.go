@@ -191,6 +191,17 @@ func (r *Repository) UpdateGrade(ctx context.Context, characterID uuid.UUID, new
 	return err
 }
 
+// UpdateZone updates character zone (for teleport)
+func (r *Repository) UpdateZone(ctx context.Context, characterID uuid.UUID, zoneID string, x, y, z float32) error {
+	query := `
+		UPDATE characters
+		SET zone_id = $2, position_x = $3, position_y = $4, position_z = $5, updated_at = NOW()
+		WHERE id = $1`
+
+	_, err := r.db.ExecContext(ctx, query, characterID, zoneID, x, y, z)
+	return err
+}
+
 // SoftDeleteCharacter soft deletes a character
 func (r *Repository) SoftDeleteCharacter(ctx context.Context, characterID uuid.UUID) error {
 	query := `UPDATE characters SET deleted_at = NOW(), status = 'deleted', updated_at = NOW() WHERE id = $1`
