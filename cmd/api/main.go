@@ -88,6 +88,7 @@ func main() {
 	charHandler := handlers.NewCharacterHandler(charService, jwtService)
 	adminHandler := handlers.NewAdminHandler(charService, charRepo, auditService, inventoryService, spellService)
 	inventoryHandler := handlers.NewInventoryHandler(inventoryService)
+	itemHandler := handlers.NewItemHandler(inventoryRepo)
 	spellHandler := handlers.NewSpellHandler(spellService)
 	achievementHandler := handlers.NewAchievementHandler(achievementService)
 	friendsHandler := handlers.NewFriendsHandler(friendsService)
@@ -239,6 +240,18 @@ func main() {
 			adminGroup.GET("/accounts/:id", accountHandler.GetAccount)
 			adminGroup.PUT("/accounts/:id/status", accountHandler.UpdateAccountStatus)
 			adminGroup.PUT("/accounts/:id/discord", accountHandler.UpdateAccountDiscord)
+
+			// Item Definitions Management
+			adminGroup.GET("/items", itemHandler.ListItemDefinitions)
+			adminGroup.GET("/items/:id", itemHandler.GetItemDefinition)
+			adminGroup.POST("/items", itemHandler.CreateItemDefinition)
+			adminGroup.PUT("/items/:id", itemHandler.UpdateItemDefinition)
+			adminGroup.DELETE("/items/:id", itemHandler.DeleteItemDefinition)
+
+			// Character Inventory Management (Admin)
+			adminGroup.GET("/characters/:id/inventory", itemHandler.GetCharacterInventory)
+			adminGroup.POST("/characters/:id/inventory/add", itemHandler.AddItemToInventory)
+			adminGroup.POST("/characters/:id/inventory/remove", itemHandler.RemoveItemFromInventory)
 		}
 	}
 

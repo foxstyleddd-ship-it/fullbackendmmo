@@ -292,3 +292,130 @@ func (r *Repository) CountInventoryItems(ctx context.Context, characterID uuid.U
 	err := r.db.GetContext(ctx, &count, query, characterID)
 	return count, err
 }
+
+// ListItemDefinitions retrieves all item definitions
+func (r *Repository) ListItemDefinitions(ctx context.Context) ([]ItemDefinition, error) {
+	var items []ItemDefinition
+	query := `
+		SELECT id, item_type, equipment_slot, display_name, description, icon_path,
+		       is_stackable, max_stack_size, is_tradeable, is_droppable, is_destroyable,
+		       required_grade, required_house, required_level, properties, base_value,
+		       created_at, updated_at
+		FROM item_definitions
+		ORDER BY display_name ASC`
+
+	err := r.db.SelectContext(ctx, &items, query)
+	return items, err
+}
+
+// CreateItemDefinition creates a new item definition
+func (r *Repository) CreateItemDefinition(ctx context.Context, item *ItemDefinition) error {
+	query := `
+		INSERT INTO item_definitions (
+			id, item_type, equipment_slot, display_name, description, icon_path,
+			is_stackable, max_stack_size, is_tradeable, is_droppable, is_destroyable,
+			required_grade, required_house, required_level, properties, base_value
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+		RETURNING created_at, updated_at`
+
+	return r.db.QueryRowContext(ctx, query,
+		item.ID, item.ItemType, item.EquipmentSlot, item.DisplayName, item.Description, item.IconPath,
+		item.IsStackable, item.MaxStackSize, item.IsTradeable, item.IsDroppable, item.IsDestroyable,
+		item.RequiredGrade, item.RequiredHouse, item.RequiredLevel, item.Properties, item.BaseValue,
+	).Scan(&item.CreatedAt, &item.UpdatedAt)
+}
+
+// UpdateItemDefinition updates an existing item definition
+func (r *Repository) UpdateItemDefinition(ctx context.Context, item *ItemDefinition) error {
+	query := `
+		UPDATE item_definitions SET
+			item_type = $2, equipment_slot = $3, display_name = $4, description = $5,
+			icon_path = $6, is_stackable = $7, max_stack_size = $8, is_tradeable = $9,
+			is_droppable = $10, is_destroyable = $11, required_grade = $12,
+			required_house = $13, required_level = $14, properties = $15, base_value = $16,
+			updated_at = NOW()
+		WHERE id = $1
+		RETURNING updated_at`
+
+	return r.db.QueryRowContext(ctx, query,
+		item.ID, item.ItemType, item.EquipmentSlot, item.DisplayName, item.Description,
+		item.IconPath, item.IsStackable, item.MaxStackSize, item.IsTradeable,
+		item.IsDroppable, item.IsDestroyable, item.RequiredGrade, item.RequiredHouse,
+		item.RequiredLevel, item.Properties, item.BaseValue,
+	).Scan(&item.UpdatedAt)
+}
+
+// DeleteItemDefinition deletes an item definition
+func (r *Repository) DeleteItemDefinition(ctx context.Context, itemDefID string) error {
+	query := `DELETE FROM item_definitions WHERE id = $1`
+	result, err := r.db.ExecContext(ctx, query, itemDefID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("item definition not found")
+	}
+
+	return nil
+}
+
+// AddItem adds an item to inventory (convenience wrapper for admin use)
+func (r *Repository) AddItem(ctx context.Context, characterID uuid.UUID, itemDefID string, quantity int, instanceData []byte) error {
+	tx, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	req := AddItemRequest{
+		CharacterID:  characterID,
+		ItemDefID:    itemDefID,
+		Quantity:     quantity,
+		InstanceData: instanceData,
+	}
+
+	_, err = r.AddInventoryItem(ctx, tx, req)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+// RemoveItem removes an item from inventory (convenience wrapper for admin use)
+func (r *Repository) RemoveItem(ctx context.Context, characterID uuid.UUID, itemDefID string, quantity int) error {
+	tx, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Find the inventory item by character ID and item def ID
+	var inventoryItemID uuid.UUID
+	query := `SELECT id FROM inventory_items WHERE character_id = $1 AND item_def_id = $2 LIMIT 1`
+	err = tx.GetContext(ctx, &inventoryItemID, query, characterID, itemDefID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("item not found in inventory")
+		}
+		return err
+	}
+
+	err = r.RemoveInventoryItem(ctx, tx, inventoryItemID, quantity)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+// GetInventory is an alias for GetCharacterInventoryWithDefs
+func (r *Repository) GetInventory(ctx context.Context, characterID uuid.UUID) ([]InventoryItemWithDef, error) {
+	return r.GetCharacterInventoryWithDefs(ctx, characterID)
+}

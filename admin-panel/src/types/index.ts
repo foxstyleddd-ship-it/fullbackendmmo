@@ -176,3 +176,60 @@ export interface CharacterSpell {
   created_at: string;
   updated_at: string;
 }
+
+export type ItemType =
+  | 'weapon'
+  | 'armor'
+  | 'accessory'
+  | 'consumable'
+  | 'quest_item'
+  | 'material'
+  | 'cosmetic'
+  | 'currency'
+  | 'broom'
+  | 'pet';
+
+export type EquipmentSlotType =
+  | 'wand'
+  | 'robe'
+  | 'hat'
+  | 'cloak'
+  | 'amulet'
+  | 'ring_left'
+  | 'ring_right'
+  | 'boots'
+  | 'gloves'
+  | 'broom';
+
+export interface ItemDefinition {
+  id: string;
+  item_type: ItemType;
+  equipment_slot?: EquipmentSlotType;
+  display_name: string;
+  description: string;
+  icon_path: string;
+  is_stackable: boolean;
+  max_stack_size: number;
+  is_tradeable: boolean;
+  is_droppable: boolean;
+  is_destroyable: boolean;
+  required_grade: number;
+  required_house?: string;
+  required_level: number;
+  properties: Record<string, any>;
+  base_value: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface InventoryItemWithDef extends InventoryItem {
+  // Additional fields from ItemDefinition
+  icon_path: string;
+  is_tradeable: boolean;
+  is_droppable: boolean;
+  is_destroyable: boolean;
+  required_grade: number;
+  required_house?: string;
+  required_level: number;
+  properties: Record<string, any>;
+}
