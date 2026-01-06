@@ -174,7 +174,7 @@ export default function AccountList() {
                     <div className="flex items-center">
                       <div>
                         <div className="text-sm font-medium text-gray-900">{account.username}</div>
-                        {account.display_name && (
+                        {account.display_name && typeof account.display_name === 'string' && (
                           <div className="text-sm text-gray-500">{account.display_name}</div>
                         )}
                       </div>
@@ -259,6 +259,9 @@ export default function AccountList() {
             <div className="space-y-2">
               <p><strong>ID:</strong> {selectedAccount.id}</p>
               <p><strong>Username:</strong> {selectedAccount.username}</p>
+              {selectedAccount.display_name && typeof selectedAccount.display_name === 'string' && (
+                <p><strong>Display Name:</strong> {selectedAccount.display_name}</p>
+              )}
               <p><strong>Email:</strong> {selectedAccount.email}</p>
               <p><strong>Discord ID:</strong> {selectedAccount.discord_id || 'Not set'}</p>
               <p><strong>Status:</strong> {selectedAccount.status}</p>
