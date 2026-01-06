@@ -73,36 +73,42 @@ func (h *AdminHandler) ExecuteCommand(c *gin.Context) {
 		return
 	}
 
-	// Parse target ID
-	targetID, err := uuid.Parse(req.TargetID)
-	if err != nil {
-		middleware.ErrorResponse(c, http.StatusBadRequest, "INVALID_TARGET_ID", "Invalid target character ID", err.Error())
-		return
-	}
-
 	// Get client info for audit log
 	ip := c.ClientIP()
 	userAgent := c.GetHeader("User-Agent")
 
 	// Execute command based on type
 	var response *ExecuteCommandResponse
+	var targetID uuid.UUID
+
 	switch req.Command {
-	case "setgrade":
-		response, err = h.executeSetGrade(c, adminUUID, targetID, req.Parameters, ip, userAgent)
-	case "teleport":
-		response, err = h.executeTeleport(c, adminUUID, targetID, req.Parameters, ip, userAgent)
-	case "grantitem":
-		response, err = h.executeGrantItem(c, adminUUID, targetID, req.Parameters, ip, userAgent)
-	case "grantspell":
-		response, err = h.executeGrantSpell(c, adminUUID, targetID, req.Parameters, ip, userAgent)
-	case "removespell":
-		response, err = h.executeRemoveSpell(c, adminUUID, targetID, req.Parameters, ip, userAgent)
 	case "addhousepoints":
-		// For house points, target_id is the house name
+		// For house points, target_id is the house name (no UUID parsing needed)
 		response, err = h.executeAddHousePoints(c, adminUUID, req.TargetID, req.Parameters, ip, userAgent)
 	case "removehousepoints":
-		// For house points, target_id is the house name
+		// For house points, target_id is the house name (no UUID parsing needed)
 		response, err = h.executeRemoveHousePoints(c, adminUUID, req.TargetID, req.Parameters, ip, userAgent)
+	case "setgrade", "teleport", "grantitem", "grantspell", "removespell":
+		// Parse target ID as UUID for character-specific commands
+		targetID, err = uuid.Parse(req.TargetID)
+		if err != nil {
+			middleware.ErrorResponse(c, http.StatusBadRequest, "INVALID_TARGET_ID", "Invalid target character ID", err.Error())
+			return
+		}
+
+		// Execute character-specific command
+		switch req.Command {
+		case "setgrade":
+			response, err = h.executeSetGrade(c, adminUUID, targetID, req.Parameters, ip, userAgent)
+		case "teleport":
+			response, err = h.executeTeleport(c, adminUUID, targetID, req.Parameters, ip, userAgent)
+		case "grantitem":
+			response, err = h.executeGrantItem(c, adminUUID, targetID, req.Parameters, ip, userAgent)
+		case "grantspell":
+			response, err = h.executeGrantSpell(c, adminUUID, targetID, req.Parameters, ip, userAgent)
+		case "removespell":
+			response, err = h.executeRemoveSpell(c, adminUUID, targetID, req.Parameters, ip, userAgent)
+		}
 	default:
 		middleware.ErrorResponse(c, http.StatusBadRequest, "UNKNOWN_COMMAND", fmt.Sprintf("Unknown command: %s", req.Command), nil)
 		return
