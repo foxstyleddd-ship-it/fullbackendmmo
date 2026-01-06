@@ -97,6 +97,12 @@ func (h *AdminHandler) ExecuteCommand(c *gin.Context) {
 		response, err = h.executeGrantSpell(c, adminUUID, targetID, req.Parameters, ip, userAgent)
 	case "removespell":
 		response, err = h.executeRemoveSpell(c, adminUUID, targetID, req.Parameters, ip, userAgent)
+	case "addhousepoints":
+		// For house points, target_id is the house name
+		response, err = h.executeAddHousePoints(c, adminUUID, req.TargetID, req.Parameters, ip, userAgent)
+	case "removehousepoints":
+		// For house points, target_id is the house name
+		response, err = h.executeRemoveHousePoints(c, adminUUID, req.TargetID, req.Parameters, ip, userAgent)
 	default:
 		middleware.ErrorResponse(c, http.StatusBadRequest, "UNKNOWN_COMMAND", fmt.Sprintf("Unknown command: %s", req.Command), nil)
 		return
@@ -383,4 +389,84 @@ func (h *AdminHandler) GetAdminAuditLogs(c *gin.Context) {
 		"logs":     logs,
 		"count":    len(logs),
 	})
+}
+
+// executeAddHousePoints adds house points to ALL members of a house
+func (h *AdminHandler) executeAddHousePoints(c *gin.Context, adminID uuid.UUID, house string, params map[string]interface{}, ip, userAgent string) (*ExecuteCommandResponse, error) {
+	points, ok := params["points"].(float64)
+	if !ok || points <= 0 {
+		return nil, fmt.Errorf("points parameter is required and must be positive")
+	}
+
+	pointsInt := int(points)
+
+	// Get all characters in the house
+	query := `
+		UPDATE character_currencies cc
+		SET amount = amount + $1, updated_at = NOW()
+		FROM characters c
+		WHERE cc.character_id = c.id
+		AND c.house = $2
+		AND cc.currency_id = 'house_points'
+		AND c.deleted_at IS NULL`
+
+	result, err := h.charRepo.GetDB().ExecContext(c.Request.Context(), query, pointsInt, house)
+	if err != nil {
+		return nil, fmt.Errorf("failed to add house points: %w", err)
+	}
+
+	affected, _ := result.RowsAffected()
+
+	details := fmt.Sprintf("Added %d house points to %s (affected %d characters)", pointsInt, house, affected)
+	_ = h.auditService.LogAdminAction(c.Request.Context(), adminID, uuid.Nil, "add_house_points", details, true, nil, ip, userAgent)
+
+	return &ExecuteCommandResponse{
+		Success: true,
+		Message: fmt.Sprintf("Added %d points to house %s", pointsInt, house),
+		Data: gin.H{
+			"house":              house,
+			"points_added":       pointsInt,
+			"characters_updated": affected,
+		},
+	}, nil
+}
+
+// executeRemoveHousePoints removes house points from ALL members of a house
+func (h *AdminHandler) executeRemoveHousePoints(c *gin.Context, adminID uuid.UUID, house string, params map[string]interface{}, ip, userAgent string) (*ExecuteCommandResponse, error) {
+	points, ok := params["points"].(float64)
+	if !ok || points <= 0 {
+		return nil, fmt.Errorf("points parameter is required and must be positive")
+	}
+
+	pointsInt := int(points)
+
+	// Remove points (but don't go below 0)
+	query := `
+		UPDATE character_currencies cc
+		SET amount = GREATEST(amount - $1, 0), updated_at = NOW()
+		FROM characters c
+		WHERE cc.character_id = c.id
+		AND c.house = $2
+		AND cc.currency_id = 'house_points'
+		AND c.deleted_at IS NULL`
+
+	result, err := h.charRepo.GetDB().ExecContext(c.Request.Context(), query, pointsInt, house)
+	if err != nil {
+		return nil, fmt.Errorf("failed to remove house points: %w", err)
+	}
+
+	affected, _ := result.RowsAffected()
+
+	details := fmt.Sprintf("Removed %d house points from %s (affected %d characters)", pointsInt, house, affected)
+	_ = h.auditService.LogAdminAction(c.Request.Context(), adminID, uuid.Nil, "remove_house_points", details, true, nil, ip, userAgent)
+
+	return &ExecuteCommandResponse{
+		Success: true,
+		Message: fmt.Sprintf("Removed %d points from house %s", pointsInt, house),
+		Data: gin.H{
+			"house":              house,
+			"points_removed":     pointsInt,
+			"characters_updated": affected,
+		},
+	}, nil
 }

@@ -188,6 +188,61 @@ class APIService {
     return response.data.data;
   }
 
+  // Achievements
+  async getAllAchievements(): Promise<{achievements: any[], count: number}> {
+    const response = await this.client.get<APIResponse<{achievements: any[], count: number}>>('/achievements');
+    return response.data.data;
+  }
+
+  async getCharacterAchievements(characterId: string): Promise<{achievements: any[], stats: any}> {
+    const response = await this.client.get<APIResponse<{achievements: any[], stats: any}>>(`/characters/${characterId}/achievements`);
+    return response.data.data;
+  }
+
+  // Friends
+  async getFriends(characterId: string): Promise<{friends: any[], count: number}> {
+    const response = await this.client.get<APIResponse<{friends: any[], count: number}>>(`/characters/${characterId}/friends`);
+    return response.data.data;
+  }
+
+  async getPendingRequests(characterId: string): Promise<{requests: any[], count: number}> {
+    const response = await this.client.get<APIResponse<{requests: any[], count: number}>>(`/characters/${characterId}/friends/requests`);
+    return response.data.data;
+  }
+
+  async sendFriendRequest(requesterId: string, addresseeId: string): Promise<any> {
+    const response = await this.client.post<APIResponse<any>>('/friends/request', {
+      requester_id: requesterId,
+      addressee_id: addresseeId,
+    });
+    return response.data.data;
+  }
+
+  async acceptFriendRequest(friendshipId: string): Promise<any> {
+    const response = await this.client.post<APIResponse<any>>(`/friends/accept/${friendshipId}`);
+    return response.data.data;
+  }
+
+  async declineFriendRequest(friendshipId: string): Promise<any> {
+    const response = await this.client.post<APIResponse<any>>(`/friends/decline/${friendshipId}`);
+    return response.data.data;
+  }
+
+  async removeFriend(friendshipId: string): Promise<any> {
+    await this.client.delete(`/friends/${friendshipId}`);
+  }
+
+  // Leaderboards
+  async getLeaderboard(limit = 50): Promise<{leaderboard: any[], count: number}> {
+    const response = await this.client.get<APIResponse<{leaderboard: any[], count: number}>>(`/leaderboard?limit=${limit}`);
+    return response.data.data;
+  }
+
+  async getHouseLeaderboard(house: string, limit = 50): Promise<{leaderboard: any[], count: number}> {
+    const response = await this.client.get<APIResponse<{leaderboard: any[], count: number}>>(`/leaderboard/house/${house}?limit=${limit}`);
+    return response.data.data;
+  }
+
   isAuthenticated(): boolean {
     return !!this.token;
   }
