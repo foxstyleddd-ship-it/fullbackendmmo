@@ -63,8 +63,15 @@ class APIService {
   async login(data: LoginRequest): Promise<LoginResponse> {
     const response = await this.client.post<APIResponse<LoginResponse>>('/auth/login', data);
     const loginData = response.data.data;
-    this.setAuthToken(loginData.access_token);
-    localStorage.setItem('user', JSON.stringify(loginData.account));
+    this.setAuthToken(loginData.tokens.access_token);
+    // Store user info (not the full loginData with tokens)
+    const userInfo = {
+      account_id: loginData.account_id,
+      username: loginData.username,
+      role: loginData.role,
+      display_name: loginData.display_name
+    };
+    localStorage.setItem('user', JSON.stringify(userInfo));
     return loginData;
   }
 
@@ -356,7 +363,15 @@ class APIService {
 
   getCurrentUser() {
     const userStr = localStorage.getItem('user');
-    return userStr ? JSON.parse(userStr) : null;
+    if (!userStr || userStr === 'undefined' || userStr === 'null') {
+      return null;
+    }
+    try {
+      return JSON.parse(userStr);
+    } catch (e) {
+      console.error('Failed to parse user from localStorage:', e);
+      return null;
+    }
   }
 }
 

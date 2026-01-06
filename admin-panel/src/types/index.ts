@@ -3,10 +3,20 @@ export interface LoginRequest {
   password: string;
 }
 
-export interface LoginResponse {
+export interface TokenResponse {
   access_token: string;
   refresh_token: string;
-  account: Account;
+  expires_in: number;
+  token_type: string;
+}
+
+export interface LoginResponse {
+  account_id: string;
+  username: string;
+  display_name?: string;
+  role: string;
+  last_login_at?: string;
+  tokens: TokenResponse;
   characters: Character[];
 }
 

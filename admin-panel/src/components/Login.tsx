@@ -20,7 +20,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       const response = await apiService.login({ email, password });
 
       // Check if user has admin privileges
-      if (!['admin', 'gm', 'superadmin'].includes(response.account.role)) {
+      if (!['admin', 'gm', 'superadmin'].includes(response.role)) {
         setError('Access denied: Admin privileges required');
         apiService.logout();
         return;
