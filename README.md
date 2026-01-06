@@ -65,6 +65,15 @@ Backend complet et panneau d'administration clés en main pour un MMO Harry Pott
 - 👤 **Nom du personnage** optionnel pour audit
 - 📊 **Audit automatique** de toutes les modifications
 
+### 📓 Carnets d'École et Notes
+- 📔 **Carnets multiples** : Chaque personnage peut avoir plusieurs carnets
+- 📝 **Contenu** : Titre, contenu texte, matière optionnelle (13 matières)
+- 📊 **Notes académiques** : Par matière et année d'étude (1-7)
+- 📈 **Examens** : Contrôle continu, examens partiels, finaux, BUSES, ASPICS
+- 🎓 **6 niveaux de notes** : Optimal (O), Effort Exceptionnel (E), Acceptable (A), Piètre (P), Désolant (D), Troll (T)
+- 📜 **Bulletins** : Rapport de fin d'année avec commentaires des professeurs et signature du directeur
+- 🔒 **Permissions** : Carnets CRUD par les joueurs, notes admin/GM uniquement
+
 ### 📋 Audit Logs
 - 📖 **Logs complets** : Toutes les actions admin/GM enregistrées
 - 🔍 **Métadonnées** : Qui, Quoi, Quand, Où, Résultat
@@ -76,7 +85,7 @@ Backend complet et panneau d'administration clés en main pour un MMO Harry Pott
 
 ## 🎨 Admin Panel (Frontend React)
 
-### 📱 10 Vues Complètes
+### 📱 12 Vues Complètes
 
 1. **📋 Liste des Personnages** - Recherche, filtrage, actions CRUD
 2. **👤 Détails Personnage** - Info complète + Inventaire + Sorts
@@ -87,7 +96,9 @@ Backend complet et panneau d'administration clés en main pour un MMO Harry Pott
 7. **👥 Friends** - Gestion complète des amis
 8. **📊 Leaderboard** - Global et par maison
 9. **🏠 House Points** - Interface d'ajout/retrait
-10. **📝 Audit Logs** - Historique des actions
+10. **📓 Carnets** - Gestion des carnets d'école avec CRUD complet
+11. **📊 Notes & Bulletins** - Visualisation des notes et bulletins scolaires
+12. **📝 Audit Logs** - Historique des actions
 
 ## 🏗️ Architecture
 
@@ -104,6 +115,7 @@ cmd/api/
     ├── friends_handler.go
     ├── leaderboard_handler.go
     ├── account_handler.go
+    ├── notebook_handler.go
     └── admin_handler.go
 
 internal/
@@ -113,6 +125,7 @@ internal/
 ├── spell/             # Système de sorts
 ├── achievement/       # Achievements
 ├── friends/           # Système d'amis
+├── notebook/          # Carnets d'école & notes académiques
 ├── audit/             # Audit logs
 └── pkg/
     ├── config/        # Configuration
@@ -125,7 +138,8 @@ migrations/
 ├── 001_initial.up.sql
 ├── 002_spells.up.sql
 ├── 003_achievements_and_social.up.sql
-└── 004_add_account_discord_and_status.up.sql
+├── 004_add_account_discord_and_status.up.sql
+└── 005_school_notebooks_and_grades.up.sql
 ```
 
 ### Frontend (React + TypeScript + Vite)
@@ -142,6 +156,8 @@ admin-panel/src/
 │   ├── Friends.tsx
 │   ├── Leaderboard.tsx
 │   ├── HousePoints.tsx
+│   ├── Notebooks.tsx           # Carnets d'école
+│   ├── GradeReport.tsx         # Notes et bulletins
 │   └── AuditLogsViewer.tsx
 ├── services/
 │   └── api.ts                  # Client API
@@ -152,49 +168,239 @@ admin-panel/src/
 ## 🚀 Installation & Démarrage
 
 ### Prérequis
-- Go 1.22+
-- PostgreSQL 16
-- Redis 7
-- Node.js 18+
+- **Go 1.22+** - [Télécharger](https://go.dev/dl/)
+- **PostgreSQL 16** (via Docker recommandé)
+- **Redis 7** (via Docker recommandé)
+- **Node.js 18+** - [Télécharger](https://nodejs.org/)
+- **golang-migrate** - [Installation](https://github.com/golang-migrate/migrate)
 
-### 1. Database Setup
+### 1. Configuration de l'Environnement
+
 ```bash
-# Démarrer PostgreSQL et Redis
-docker-compose up -d
+# Cloner le projet
+git clone <repository-url>
+cd fullbackendmmo
 
-# Exécuter les migrations
-migrate -path migrations -database "postgresql://hpmmo:hpmmo@localhost:5432/hpmmo?sslmode=disable" up
+# Copier le fichier d'environnement exemple
+cp .env.example .env
+
+# Éditer .env avec vos valeurs (les valeurs par défaut sont déjà configurées pour Docker)
+# Les valeurs importantes à vérifier :
+# DB_PASSWORD=hpmmo_dev_password
+# REDIS_PASSWORD=hpmmo_redis_password
 ```
 
-### 2. Backend
+**⚠️ Important** : Le mot de passe PostgreSQL par défaut est `hpmmo_dev_password`, pas `hpmmo` !
+
+### 2. Démarrage des Services (Docker)
+
 ```bash
-# Installer les dépendances
+# Démarrer PostgreSQL, Redis, NATS, Prometheus et Grafana
+docker-compose up -d
+
+# Vérifier que les services sont démarrés
+docker-compose ps
+
+# Devrait afficher tous les services avec le statut "Up"
+```
+
+**Services disponibles** :
+- PostgreSQL : `localhost:5432`
+- Redis : `localhost:6379`
+- NATS : `localhost:4222`
+- Prometheus : `http://localhost:9090`
+- Grafana : `http://localhost:3000` (admin/admin)
+
+### 3. Installation de golang-migrate (si pas déjà installé)
+
+```bash
+# macOS
+brew install golang-migrate
+
+# Linux
+curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz
+sudo mv migrate /usr/local/bin/migrate
+
+# Windows (via Scoop)
+scoop install migrate
+
+# Ou télécharger depuis : https://github.com/golang-migrate/migrate/releases
+```
+
+### 4. Exécution des Migrations
+
+```bash
+# IMPORTANT : Utiliser le bon mot de passe !
+migrate -path migrations -database "postgresql://hpmmo:hpmmo_dev_password@localhost:5432/hpmmo?sslmode=disable" up
+
+# Pour vérifier l'état des migrations
+migrate -path migrations -database "postgresql://hpmmo:hpmmo_dev_password@localhost:5432/hpmmo?sslmode=disable" version
+
+# Pour voir les migrations appliquées (optionnel)
+docker exec -it hpmmo-postgres psql -U hpmmo -d hpmmo -c "\dt"
+```
+
+**En cas d'erreur d'authentification** :
+```bash
+# Si vous obtenez "password authentication failed for user hpmmo"
+# Vérifiez que vous utilisez le bon mot de passe : hpmmo_dev_password
+
+# Vérifier que PostgreSQL est bien démarré
+docker-compose ps postgres
+
+# Voir les logs PostgreSQL
+docker-compose logs postgres
+
+# Se connecter manuellement pour tester
+docker exec -it hpmmo-postgres psql -U hpmmo -d hpmmo
+# Mot de passe : hpmmo_dev_password
+```
+
+### 5. Backend (API Server)
+
+```bash
+# Installer les dépendances Go
 go mod download
 
-# Compiler
+# Compiler le serveur API
 go build -o bin/api ./cmd/api
 
-# Lancer le serveur
+# Lancer le serveur (en mode développement)
 ./bin/api
+
+# Ou directement avec go run
+go run ./cmd/api
 ```
 
 Le serveur API démarre sur `http://localhost:8080`
 
-### 3. Frontend (Admin Panel)
+**Vérifier que l'API fonctionne** :
+```bash
+curl http://localhost:8080/health
+# Devrait retourner : {"status":"ok"}
+```
+
+### 6. Frontend (Admin Panel)
+
 ```bash
 cd admin-panel
 
-# Installer les dépendances
+# Copier le fichier d'environnement
+cp .env.example .env
+
+# Vérifier que l'URL de l'API est correcte dans .env
+# VITE_API_BASE_URL=http://localhost:8080/v1
+
+# Installer les dépendances npm
 npm install
 
-# Development mode
+# Lancer en mode développement (avec hot-reload)
 npm run dev
 
-# Build pour production
+# Ou compiler pour la production
 npm run build
+npm run preview
 ```
 
 Le panneau d'admin sera accessible sur `http://localhost:5173`
+
+### 7. Créer un Compte Admin Initial
+
+```bash
+# Option 1 : Via API
+curl -X POST http://localhost:8080/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@hpmmo.com",
+    "username": "admin",
+    "password": "Admin123!"
+  }'
+
+# Option 2 : Directement en base de données
+docker exec -it hpmmo-postgres psql -U hpmmo -d hpmmo -c \
+  "UPDATE accounts SET role = 'superadmin' WHERE email = 'admin@hpmmo.com';"
+```
+
+### 8. Se Connecter au Panneau Admin
+
+1. Ouvrir `http://localhost:5173`
+2. Utiliser les identifiants créés à l'étape 7
+3. Vous devriez voir le Dashboard avec tous les onglets
+
+## 🔧 Dépannage
+
+### Problème : "password authentication failed for user hpmmo"
+
+**Solution** : Utilisez `hpmmo_dev_password` et non `hpmmo` comme mot de passe.
+
+```bash
+# Bonne commande
+migrate -path migrations -database "postgresql://hpmmo:hpmmo_dev_password@localhost:5432/hpmmo?sslmode=disable" up
+
+# Mauvaise commande (va échouer)
+migrate -path migrations -database "postgresql://hpmmo:hpmmo@localhost:5432/hpmmo?sslmode=disable" up
+```
+
+### Problème : "database connection refused"
+
+```bash
+# Vérifier que Docker est démarré
+docker-compose ps
+
+# Redémarrer les services
+docker-compose down
+docker-compose up -d
+
+# Attendre quelques secondes que PostgreSQL soit prêt
+sleep 5
+```
+
+### Problème : "migration: no change" ou table déjà existe
+
+```bash
+# Réinitialiser complètement la base de données
+docker-compose down -v
+docker-compose up -d
+sleep 5
+migrate -path migrations -database "postgresql://hpmmo:hpmmo_dev_password@localhost:5432/hpmmo?sslmode=disable" up
+```
+
+### Problème : Frontend ne se connecte pas au backend
+
+1. Vérifier que le backend est démarré : `curl http://localhost:8080/health`
+2. Vérifier le fichier `admin-panel/.env` : `VITE_API_BASE_URL=http://localhost:8080/v1`
+3. Vérifier les CORS dans le backend (déjà configuré pour localhost:5173)
+
+## 📊 Commandes Utiles
+
+```bash
+# Voir les logs du backend
+./bin/api
+
+# Voir les logs PostgreSQL
+docker-compose logs -f postgres
+
+# Voir les logs Redis
+docker-compose logs -f redis
+
+# Accéder à PostgreSQL en ligne de commande
+docker exec -it hpmmo-postgres psql -U hpmmo -d hpmmo
+
+# Lister les tables
+docker exec -it hpmmo-postgres psql -U hpmmo -d hpmmo -c "\dt"
+
+# Compter les personnages
+docker exec -it hpmmo-postgres psql -U hpmmo -d hpmmo -c "SELECT COUNT(*) FROM characters;"
+
+# Voir les migrations appliquées
+docker exec -it hpmmo-postgres psql -U hpmmo -d hpmmo -c "SELECT * FROM schema_migrations;"
+
+# Arrêter tous les services
+docker-compose down
+
+# Arrêter et supprimer les volumes (⚠️ perte de données)
+docker-compose down -v
+```
 
 ## 📡 API Endpoints Principaux
 
@@ -234,6 +440,24 @@ Le panneau d'admin sera accessible sur `http://localhost:5173`
 - `GET /v1/leaderboard` - Global
 - `GET /v1/leaderboard/house/:house` - Par maison
 
+### Carnets d'École
+- `GET /v1/characters/:id/notebooks` - Carnets d'un personnage
+- `POST /v1/notebooks` - Créer carnet
+- `GET /v1/notebooks/:id` - Détails carnet
+- `PUT /v1/notebooks/:id` - Modifier carnet
+- `DELETE /v1/notebooks/:id` - Supprimer carnet
+
+### Notes Académiques (Admin/GM uniquement pour création)
+- `GET /v1/characters/:id/grades` - Notes d'un personnage (?year=N pour filtrer)
+- `POST /v1/grades` - Créer note
+- `DELETE /v1/grades/:id` - Supprimer note
+
+### Bulletins Scolaires (Admin/GM uniquement)
+- `GET /v1/characters/:id/report-cards` - Tous les bulletins
+- `GET /v1/characters/:id/report-cards/:year` - Bulletin d'une année
+- `POST /v1/report-cards` - Créer bulletin
+- `DELETE /v1/report-cards/:id` - Supprimer bulletin
+
 ### Admin (Requiert GM/Admin/Superadmin)
 - `POST /v1/admin/commands/execute` - Exécuter commande
 - `GET /v1/admin/accounts` - Liste des comptes
@@ -257,9 +481,16 @@ Le panneau d'admin sera accessible sur `http://localhost:5173`
 - `achievement_definitions` - Définitions d'achievements
 - `character_achievements` - Achievements des personnages
 - `friendships` - Relations d'amitié
+- `school_notebooks` - Carnets d'école des personnages
+- `academic_grades` - Notes académiques par matière et année
+- `report_cards` - Bulletins de fin d'année
 - `sanctions` - Bans/kicks
 - `audit_logs` - Logs d'audit
 - `leaderboard_overall` - Materialized view pour leaderboard
+
+### Enums Personnalisés
+- `school_subject` - 13 matières (Charms, Transfiguration, Potions, etc.)
+- `grade_value` - 6 niveaux de notes (Outstanding, Exceeds Expectations, Acceptable, Poor, Dreadful, Troll)
 
 ## 🔒 Sécurité
 
