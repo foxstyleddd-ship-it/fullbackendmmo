@@ -274,6 +274,82 @@ class APIService {
     return response.data.data;
   }
 
+  // Notebooks
+  async getCharacterNotebooks(characterId: string): Promise<{notebooks: any[]; count: number}> {
+    const response = await this.client.get<APIResponse<{notebooks: any[]; count: number}>>(`/characters/${characterId}/notebooks`);
+    return response.data.data;
+  }
+
+  async getNotebook(notebookId: string): Promise<any> {
+    const response = await this.client.get<APIResponse<any>>(`/notebooks/${notebookId}`);
+    return response.data.data;
+  }
+
+  async createNotebook(data: {character_id: string, title: string, content: string, subject?: string}): Promise<any> {
+    const response = await this.client.post<APIResponse<any>>('/notebooks', data);
+    return response.data.data;
+  }
+
+  async updateNotebook(notebookId: string, data: {title?: string, content?: string, subject?: string}): Promise<any> {
+    const response = await this.client.put<APIResponse<any>>(`/notebooks/${notebookId}`, data);
+    return response.data.data;
+  }
+
+  async deleteNotebook(notebookId: string): Promise<void> {
+    await this.client.delete(`/notebooks/${notebookId}`);
+  }
+
+  // Academic Grades
+  async getCharacterGrades(characterId: string, year?: number): Promise<{grades: any[]; count: number}> {
+    const url = year
+      ? `/characters/${characterId}/grades?year=${year}`
+      : `/characters/${characterId}/grades`;
+    const response = await this.client.get<APIResponse<{grades: any[]; count: number}>>(url);
+    return response.data.data;
+  }
+
+  async createGrade(data: {
+    character_id: string,
+    school_year: number,
+    subject: string,
+    grade_value: string,
+    exam_type: string,
+    score?: number,
+    teacher_comment?: string
+  }): Promise<any> {
+    const response = await this.client.post<APIResponse<any>>('/grades', data);
+    return response.data.data;
+  }
+
+  async deleteGrade(gradeId: string): Promise<void> {
+    await this.client.delete(`/grades/${gradeId}`);
+  }
+
+  // Report Cards
+  async getAllReportCards(characterId: string): Promise<{report_cards: any[]; count: number}> {
+    const response = await this.client.get<APIResponse<{report_cards: any[]; count: number}>>(`/characters/${characterId}/report-cards`);
+    return response.data.data;
+  }
+
+  async getReportCard(characterId: string, year: number): Promise<{report_card: any}> {
+    const response = await this.client.get<APIResponse<{report_card: any}>>(`/characters/${characterId}/report-cards/${year}`);
+    return response.data.data;
+  }
+
+  async createReportCard(data: {
+    character_id: string,
+    school_year: number,
+    overall_comment?: string,
+    headmaster_signature?: string
+  }): Promise<any> {
+    const response = await this.client.post<APIResponse<any>>('/report-cards', data);
+    return response.data.data;
+  }
+
+  async deleteReportCard(reportCardId: string): Promise<void> {
+    await this.client.delete(`/report-cards/${reportCardId}`);
+  }
+
   isAuthenticated(): boolean {
     return !!this.token;
   }
