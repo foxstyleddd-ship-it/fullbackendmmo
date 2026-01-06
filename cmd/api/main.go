@@ -89,6 +89,7 @@ func main() {
 	achievementHandler := handlers.NewAchievementHandler(achievementService)
 	friendsHandler := handlers.NewFriendsHandler(friendsService)
 	leaderboardHandler := handlers.NewLeaderboardHandler(database)
+	accountHandler := handlers.NewAccountHandler(database, authRepo, charRepo)
 
 	// Setup Gin
 	if cfg.Env == "production" {
@@ -190,6 +191,13 @@ func main() {
 			// Audit Logs
 			adminGroup.GET("/audit/character/:id", adminHandler.GetCharacterAuditLogs)
 			adminGroup.GET("/audit/my-actions", adminHandler.GetAdminAuditLogs)
+
+			// Account Management
+			adminGroup.GET("/accounts", accountHandler.ListAccounts)
+			adminGroup.GET("/accounts/search", accountHandler.SearchAccounts)
+			adminGroup.GET("/accounts/:id", accountHandler.GetAccount)
+			adminGroup.PUT("/accounts/:id/status", accountHandler.UpdateAccountStatus)
+			adminGroup.PUT("/accounts/:id/discord", accountHandler.UpdateAccountDiscord)
 		}
 	}
 
