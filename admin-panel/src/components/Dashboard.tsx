@@ -2,12 +2,17 @@ import { useState } from 'react';
 import { apiService } from '../services/api';
 import CharacterManager from './CharacterManager';
 import AuditLogsViewer from './AuditLogsViewer';
+import CreateAccount from './CreateAccount';
+import CreateCharacter from './CreateCharacter';
+import Achievements from './Achievements';
+import Friends from './Friends';
+import Leaderboard from './Leaderboard';
 
 interface DashboardProps {
   onLogout: () => void;
 }
 
-type Tab = 'characters' | 'audit';
+type Tab = 'characters' | 'create-account' | 'create-character' | 'achievements' | 'friends' | 'leaderboard' | 'audit';
 
 export default function Dashboard({ onLogout }: DashboardProps) {
   const [activeTab, setActiveTab] = useState<Tab>('characters');
@@ -50,6 +55,56 @@ export default function Dashboard({ onLogout }: DashboardProps) {
               Character Management
             </button>
             <button
+              onClick={() => setActiveTab('create-account')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
+                activeTab === 'create-account'
+                  ? 'border-purple-500 text-purple-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Create Account
+            </button>
+            <button
+              onClick={() => setActiveTab('create-character')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
+                activeTab === 'create-character'
+                  ? 'border-purple-500 text-purple-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Create Character
+            </button>
+            <button
+              onClick={() => setActiveTab('achievements')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
+                activeTab === 'achievements'
+                  ? 'border-purple-500 text-purple-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Achievements
+            </button>
+            <button
+              onClick={() => setActiveTab('friends')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
+                activeTab === 'friends'
+                  ? 'border-purple-500 text-purple-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Friends
+            </button>
+            <button
+              onClick={() => setActiveTab('leaderboard')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
+                activeTab === 'leaderboard'
+                  ? 'border-purple-500 text-purple-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Leaderboard
+            </button>
+            <button
               onClick={() => setActiveTab('audit')}
               className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
                 activeTab === 'audit'
@@ -66,6 +121,11 @@ export default function Dashboard({ onLogout }: DashboardProps) {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {activeTab === 'characters' && <CharacterManager />}
+        {activeTab === 'create-account' && <CreateAccount />}
+        {activeTab === 'create-character' && <CreateCharacter />}
+        {activeTab === 'achievements' && <Achievements />}
+        {activeTab === 'friends' && <Friends />}
+        {activeTab === 'leaderboard' && <Leaderboard />}
         {activeTab === 'audit' && <AuditLogsViewer />}
       </main>
     </div>

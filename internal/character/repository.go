@@ -19,6 +19,11 @@ func NewRepository(db *sqlx.DB) *Repository {
 	return &Repository{db: db}
 }
 
+// GetDB returns the database connection
+func (r *Repository) GetDB() *sqlx.DB {
+	return r.db
+}
+
 // CreateCharacter creates a new character
 func (r *Repository) CreateCharacter(ctx context.Context, char *Character) error {
 	query := `

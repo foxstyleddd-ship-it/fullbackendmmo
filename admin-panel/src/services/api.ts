@@ -72,6 +72,11 @@ class APIService {
     this.clearAuthToken();
   }
 
+  async register(data: { email: string; username: string; password: string }): Promise<any> {
+    const response = await this.client.post<APIResponse<any>>('/auth/register', data);
+    return response.data.data;
+  }
+
   // Characters
   async searchCharacters(query: string): Promise<Character[]> {
     // For now, we'll use the account's characters endpoint
@@ -89,6 +94,15 @@ class APIService {
   async getCharacter(id: string): Promise<CharacterDetail> {
     const response = await this.client.get<APIResponse<CharacterDetail>>(`/characters/${id}`);
     return response.data.data;
+  }
+
+  async createCharacter(data: { name: string; house: string; appearance: any }): Promise<Character> {
+    const response = await this.client.post<APIResponse<Character>>('/characters', data);
+    return response.data.data;
+  }
+
+  async deleteCharacter(id: string): Promise<void> {
+    await this.client.delete(`/characters/${id}`);
   }
 
   // Inventory
@@ -171,6 +185,61 @@ class APIService {
     const response = await this.client.get<APIResponse<{admin_id: string, logs: AuditLog[], count: number}>>(
       `/admin/audit/my-actions?limit=${limit}`
     );
+    return response.data.data;
+  }
+
+  // Achievements
+  async getAllAchievements(): Promise<{achievements: any[], count: number}> {
+    const response = await this.client.get<APIResponse<{achievements: any[], count: number}>>('/achievements');
+    return response.data.data;
+  }
+
+  async getCharacterAchievements(characterId: string): Promise<{achievements: any[], stats: any}> {
+    const response = await this.client.get<APIResponse<{achievements: any[], stats: any}>>(`/characters/${characterId}/achievements`);
+    return response.data.data;
+  }
+
+  // Friends
+  async getFriends(characterId: string): Promise<{friends: any[], count: number}> {
+    const response = await this.client.get<APIResponse<{friends: any[], count: number}>>(`/characters/${characterId}/friends`);
+    return response.data.data;
+  }
+
+  async getPendingRequests(characterId: string): Promise<{requests: any[], count: number}> {
+    const response = await this.client.get<APIResponse<{requests: any[], count: number}>>(`/characters/${characterId}/friends/requests`);
+    return response.data.data;
+  }
+
+  async sendFriendRequest(requesterId: string, addresseeId: string): Promise<any> {
+    const response = await this.client.post<APIResponse<any>>('/friends/request', {
+      requester_id: requesterId,
+      addressee_id: addresseeId,
+    });
+    return response.data.data;
+  }
+
+  async acceptFriendRequest(friendshipId: string): Promise<any> {
+    const response = await this.client.post<APIResponse<any>>(`/friends/accept/${friendshipId}`);
+    return response.data.data;
+  }
+
+  async declineFriendRequest(friendshipId: string): Promise<any> {
+    const response = await this.client.post<APIResponse<any>>(`/friends/decline/${friendshipId}`);
+    return response.data.data;
+  }
+
+  async removeFriend(friendshipId: string): Promise<any> {
+    await this.client.delete(`/friends/${friendshipId}`);
+  }
+
+  // Leaderboards
+  async getLeaderboard(limit = 50): Promise<{leaderboard: any[], count: number}> {
+    const response = await this.client.get<APIResponse<{leaderboard: any[], count: number}>>(`/leaderboard?limit=${limit}`);
+    return response.data.data;
+  }
+
+  async getHouseLeaderboard(house: string, limit = 50): Promise<{leaderboard: any[], count: number}> {
+    const response = await this.client.get<APIResponse<{leaderboard: any[], count: number}>>(`/leaderboard/house/${house}?limit=${limit}`);
     return response.data.data;
   }
 

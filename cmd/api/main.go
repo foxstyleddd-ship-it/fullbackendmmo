@@ -13,9 +13,11 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/hp-mmo/backend/cmd/api/handlers"
+	"github.com/hp-mmo/backend/internal/achievement"
 	"github.com/hp-mmo/backend/internal/audit"
 	"github.com/hp-mmo/backend/internal/auth"
 	"github.com/hp-mmo/backend/internal/character"
+	"github.com/hp-mmo/backend/internal/friends"
 	"github.com/hp-mmo/backend/internal/inventory"
 	"github.com/hp-mmo/backend/internal/pkg/config"
 	"github.com/hp-mmo/backend/internal/pkg/db"
@@ -60,6 +62,8 @@ func main() {
 	auditRepo := audit.NewRepository(database)
 	inventoryRepo := inventory.NewRepository(database)
 	spellRepo := spell.NewRepository(database)
+	achievementRepo := achievement.NewRepository(database)
+	friendsRepo := friends.NewRepository(database)
 
 	// Initialize services
 	jwtService := auth.NewJWTService(
@@ -73,6 +77,8 @@ func main() {
 	auditService := audit.NewService(auditRepo)
 	inventoryService := inventory.NewService(inventoryRepo, charRepo, database)
 	spellService := spell.NewService(spellRepo, charRepo, database)
+	achievementService := achievement.NewService(achievementRepo, database)
+	friendsService := friends.NewService(friendsRepo)
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService, charRepo)
@@ -80,6 +86,9 @@ func main() {
 	adminHandler := handlers.NewAdminHandler(charService, charRepo, auditService, inventoryService, spellService)
 	inventoryHandler := handlers.NewInventoryHandler(inventoryService)
 	spellHandler := handlers.NewSpellHandler(spellService)
+	achievementHandler := handlers.NewAchievementHandler(achievementService)
+	friendsHandler := handlers.NewFriendsHandler(friendsService)
+	leaderboardHandler := handlers.NewLeaderboardHandler(database)
 
 	// Setup Gin
 	if cfg.Env == "production" {
@@ -115,6 +124,16 @@ func main() {
 		// Spell routes (public - browse available spells)
 		v1.GET("/spells", spellHandler.GetAllSpells)
 
+		// Achievement routes (public - browse available achievements)
+		v1.GET("/achievements", achievementHandler.GetAllAchievements)
+
+		// Leaderboard routes (public)
+		leaderboardGroup := v1.Group("/leaderboard")
+		{
+			leaderboardGroup.GET("", leaderboardHandler.GetLeaderboard)
+			leaderboardGroup.GET("/house/:house", leaderboardHandler.GetHouseLeaderboard)
+		}
+
 		// Character routes (authenticated)
 		charGroup := v1.Group("/characters")
 		charGroup.Use(middleware.AuthMiddleware(jwtService))
@@ -135,6 +154,23 @@ func main() {
 
 			// Spell routes (nested under character)
 			charGroup.GET("/:id/spells", spellHandler.GetCharacterSpells)
+
+			// Achievement routes (nested under character)
+			charGroup.GET("/:id/achievements", achievementHandler.GetCharacterAchievements)
+
+			// Friends routes (nested under character)
+			charGroup.GET("/:id/friends", friendsHandler.GetFriends)
+			charGroup.GET("/:id/friends/requests", friendsHandler.GetPendingRequests)
+		}
+
+		// Friend actions (authenticated)
+		friendsGroup := v1.Group("/friends")
+		friendsGroup.Use(middleware.AuthMiddleware(jwtService))
+		{
+			friendsGroup.POST("/request", friendsHandler.SendFriendRequest)
+			friendsGroup.POST("/accept/:id", friendsHandler.AcceptFriendRequest)
+			friendsGroup.POST("/decline/:id", friendsHandler.DeclineFriendRequest)
+			friendsGroup.DELETE("/:id", friendsHandler.RemoveFriend)
 		}
 
 		// Admin routes (authenticated + role check)

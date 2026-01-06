@@ -181,6 +181,27 @@ export default function CharacterManager() {
     }
   };
 
+  const handleDeleteCharacter = async () => {
+    if (!selectedCharacter) return;
+
+    if (!confirm(`Are you sure you want to delete "${selectedCharacter.name}"? This action cannot be undone!`)) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await apiService.deleteCharacter(selectedCharacter.id);
+      setMessage({ type: 'success', text: `Character "${selectedCharacter.name}" deleted successfully` });
+      setSelectedCharacter(null);
+      setInventory([]);
+      setCharacterSpells([]);
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.response?.data?.error?.message || 'Failed to delete character' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Search */}
@@ -256,6 +277,17 @@ export default function CharacterManager() {
               <div>DEX: {selectedCharacter.stats.dexterity}</div>
               <div>INT: {selectedCharacter.stats.intelligence}</div>
               <div>WIS: {selectedCharacter.stats.wisdom}</div>
+            </div>
+
+            {/* Danger Zone */}
+            <div className="mt-6 pt-6 border-t border-red-200">
+              <button
+                onClick={handleDeleteCharacter}
+                disabled={loading}
+                className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition disabled:opacity-50"
+              >
+                Delete Character
+              </button>
             </div>
           </div>
 
