@@ -5,12 +5,14 @@ import type {
   Character,
   CharacterDetail,
   InventoryItem,
+  InventoryItemWithDef,
   EquipmentLoadout,
   AuditLog,
   GMCommandRequest,
   APIResponse,
   SpellDefinition,
   CharacterSpell,
+  ItemDefinition,
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/v1';
@@ -355,6 +357,53 @@ class APIService {
 
   async deleteReportCard(reportCardId: string): Promise<void> {
     await this.client.delete(`/report-cards/${reportCardId}`);
+  }
+
+  // Item Definitions
+  async getAllItemDefinitions(): Promise<{items: ItemDefinition[], count: number}> {
+    const response = await this.client.get<APIResponse<{items: ItemDefinition[], count: number}>>('/admin/items');
+    return response.data.data;
+  }
+
+  async getItemDefinition(itemId: string): Promise<{item: ItemDefinition}> {
+    const response = await this.client.get<APIResponse<{item: ItemDefinition}>>(`/admin/items/${itemId}`);
+    return response.data.data;
+  }
+
+  async createItemDefinition(data: Partial<ItemDefinition>): Promise<{item: ItemDefinition}> {
+    const response = await this.client.post<APIResponse<{item: ItemDefinition}>>('/admin/items', data);
+    return response.data.data;
+  }
+
+  async updateItemDefinition(itemId: string, data: Partial<ItemDefinition>): Promise<{item: ItemDefinition}> {
+    const response = await this.client.put<APIResponse<{item: ItemDefinition}>>(`/admin/items/${itemId}`, data);
+    return response.data.data;
+  }
+
+  async deleteItemDefinition(itemId: string): Promise<void> {
+    await this.client.delete(`/admin/items/${itemId}`);
+  }
+
+  // Inventory Management (Admin)
+  async getCharacterInventoryAdmin(characterId: string): Promise<{character_id: string, items: InventoryItemWithDef[], count: number}> {
+    const response = await this.client.get<APIResponse<{character_id: string, items: InventoryItemWithDef[], count: number}>>(`/admin/characters/${characterId}/inventory`);
+    return response.data.data;
+  }
+
+  async addItemToInventory(characterId: string, itemDefId: string, quantity: number): Promise<any> {
+    const response = await this.client.post<APIResponse<any>>(`/admin/characters/${characterId}/inventory/add`, {
+      item_def_id: itemDefId,
+      quantity
+    });
+    return response.data.data;
+  }
+
+  async removeItemFromInventory(characterId: string, itemDefId: string, quantity: number): Promise<any> {
+    const response = await this.client.post<APIResponse<any>>(`/admin/characters/${characterId}/inventory/remove`, {
+      item_def_id: itemDefId,
+      quantity
+    });
+    return response.data.data;
   }
 
   isAuthenticated(): boolean {

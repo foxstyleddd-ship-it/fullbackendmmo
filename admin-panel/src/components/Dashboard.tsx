@@ -12,12 +12,14 @@ import CharacterDetail from './CharacterDetail';
 import HousePoints from './HousePoints';
 import Notebooks from './Notebooks';
 import GradeReport from './GradeReport';
+import ItemDefinitions from './ItemDefinitions';
+import InventoryManager from './InventoryManager';
 
 interface DashboardProps {
   onLogout: () => void;
 }
 
-type Tab = 'characters' | 'character-detail' | 'accounts' | 'create-account' | 'create-character' | 'achievements' | 'friends' | 'leaderboard' | 'house-points' | 'notebooks' | 'grades' | 'audit';
+type Tab = 'characters' | 'character-detail' | 'accounts' | 'create-account' | 'create-character' | 'achievements' | 'friends' | 'leaderboard' | 'house-points' | 'notebooks' | 'grades' | 'audit' | 'items' | 'inventory';
 
 export default function Dashboard({ onLogout }: DashboardProps) {
   const [activeTab, setActiveTab] = useState<Tab>('characters');
@@ -169,6 +171,26 @@ export default function Dashboard({ onLogout }: DashboardProps) {
             >
               Audit Logs
             </button>
+            <button
+              onClick={() => setActiveTab('items')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
+                activeTab === 'items'
+                  ? 'border-purple-500 text-purple-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Item Definitions
+            </button>
+            <button
+              onClick={() => setActiveTab('inventory')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
+                activeTab === 'inventory'
+                  ? 'border-purple-500 text-purple-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Inventory Manager
+            </button>
           </nav>
         </div>
       </div>
@@ -187,6 +209,8 @@ export default function Dashboard({ onLogout }: DashboardProps) {
         {activeTab === 'notebooks' && <Notebooks />}
         {activeTab === 'grades' && <GradeReport />}
         {activeTab === 'audit' && <AuditLogsViewer />}
+        {activeTab === 'items' && <ItemDefinitions />}
+        {activeTab === 'inventory' && <InventoryManager />}
       </main>
     </div>
   );
