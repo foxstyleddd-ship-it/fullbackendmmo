@@ -7,12 +7,15 @@ import CreateCharacter from './CreateCharacter';
 import Achievements from './Achievements';
 import Friends from './Friends';
 import Leaderboard from './Leaderboard';
+import AccountList from './AccountList';
+import CharacterDetail from './CharacterDetail';
+import HousePoints from './HousePoints';
 
 interface DashboardProps {
   onLogout: () => void;
 }
 
-type Tab = 'characters' | 'create-account' | 'create-character' | 'achievements' | 'friends' | 'leaderboard' | 'audit';
+type Tab = 'characters' | 'character-detail' | 'accounts' | 'create-account' | 'create-character' | 'achievements' | 'friends' | 'leaderboard' | 'house-points' | 'audit';
 
 export default function Dashboard({ onLogout }: DashboardProps) {
   const [activeTab, setActiveTab] = useState<Tab>('characters');
@@ -75,6 +78,26 @@ export default function Dashboard({ onLogout }: DashboardProps) {
               Create Character
             </button>
             <button
+              onClick={() => setActiveTab('character-detail')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
+                activeTab === 'character-detail'
+                  ? 'border-purple-500 text-purple-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Character Detail
+            </button>
+            <button
+              onClick={() => setActiveTab('accounts')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
+                activeTab === 'accounts'
+                  ? 'border-purple-500 text-purple-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Accounts
+            </button>
+            <button
               onClick={() => setActiveTab('achievements')}
               className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
                 activeTab === 'achievements'
@@ -105,6 +128,16 @@ export default function Dashboard({ onLogout }: DashboardProps) {
               Leaderboard
             </button>
             <button
+              onClick={() => setActiveTab('house-points')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
+                activeTab === 'house-points'
+                  ? 'border-purple-500 text-purple-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              House Points
+            </button>
+            <button
               onClick={() => setActiveTab('audit')}
               className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
                 activeTab === 'audit'
@@ -121,11 +154,14 @@ export default function Dashboard({ onLogout }: DashboardProps) {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {activeTab === 'characters' && <CharacterManager />}
+        {activeTab === 'character-detail' && <CharacterDetail />}
+        {activeTab === 'accounts' && <AccountList />}
         {activeTab === 'create-account' && <CreateAccount />}
         {activeTab === 'create-character' && <CreateCharacter />}
         {activeTab === 'achievements' && <Achievements />}
         {activeTab === 'friends' && <Friends />}
         {activeTab === 'leaderboard' && <Leaderboard />}
+        {activeTab === 'house-points' && <HousePoints />}
         {activeTab === 'audit' && <AuditLogsViewer />}
       </main>
     </div>

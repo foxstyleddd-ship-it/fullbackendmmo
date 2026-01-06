@@ -7,6 +7,16 @@ import (
 	"github.com/google/uuid"
 )
 
+// AccountStatus represents the account status
+type AccountStatus string
+
+const (
+	AccountStatusActive     AccountStatus = "active"
+	AccountStatusWhitelisted AccountStatus = "whitelisted"
+	AccountStatusBanned     AccountStatus = "banned"
+	AccountStatusKickedOut  AccountStatus = "kicked_out"
+)
+
 // Account represents a user account
 type Account struct {
 	ID                   uuid.UUID      `db:"id" json:"id"`
@@ -15,6 +25,8 @@ type Account struct {
 	PasswordHash         string         `db:"password_hash" json:"-"`
 	Username             string         `db:"username" json:"username"`
 	DisplayName          sql.NullString `db:"display_name" json:"display_name,omitempty"`
+	DiscordID            sql.NullString `db:"discord_id" json:"discord_id,omitempty"`
+	Status               AccountStatus  `db:"status" json:"status"`
 	Role                 string         `db:"role" json:"role"`
 	CreatedAt            time.Time      `db:"created_at" json:"created_at"`
 	UpdatedAt            time.Time      `db:"updated_at" json:"updated_at"`

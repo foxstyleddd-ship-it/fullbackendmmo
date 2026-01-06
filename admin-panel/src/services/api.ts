@@ -243,6 +243,37 @@ class APIService {
     return response.data.data;
   }
 
+  // Account Management
+  async getAllAccounts(): Promise<{accounts: any[], count: number}> {
+    const response = await this.client.get<APIResponse<{accounts: any[], count: number}>>('/admin/accounts');
+    return response.data.data;
+  }
+
+  async getAccountById(accountId: string): Promise<{account: any, characters: any[]}> {
+    const response = await this.client.get<APIResponse<{account: any, characters: any[]}>>(`/admin/accounts/${accountId}`);
+    return response.data.data;
+  }
+
+  async updateAccountStatus(accountId: string, status: string, reason: string): Promise<any> {
+    const response = await this.client.put<APIResponse<any>>(`/admin/accounts/${accountId}/status`, {
+      status,
+      reason,
+    });
+    return response.data.data;
+  }
+
+  async updateAccountDiscord(accountId: string, discordId: string): Promise<any> {
+    const response = await this.client.put<APIResponse<any>>(`/admin/accounts/${accountId}/discord`, {
+      discord_id: discordId,
+    });
+    return response.data.data;
+  }
+
+  async searchAccounts(query: string): Promise<{accounts: any[], count: number}> {
+    const response = await this.client.get<APIResponse<{accounts: any[], count: number}>>(`/admin/accounts/search?q=${encodeURIComponent(query)}`);
+    return response.data.data;
+  }
+
   isAuthenticated(): boolean {
     return !!this.token;
   }
