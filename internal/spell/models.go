@@ -34,7 +34,7 @@ type SpellDefinition struct {
 	ManaCost        int             `db:"mana_cost" json:"mana_cost"`
 	CooldownSeconds int             `db:"cooldown_seconds" json:"cooldown_seconds"`
 	IsForbidden     bool            `db:"is_forbidden" json:"is_forbidden"`
-	IconPath        string          `db:"icon_path" json:"icon_path"`
+	IconPath        *string         `db:"icon_path" json:"icon_path,omitempty"`
 	Properties      json.RawMessage `db:"properties" json:"properties"`
 	CreatedAt       time.Time       `db:"created_at" json:"created_at"`
 	UpdatedAt       time.Time       `db:"updated_at" json:"updated_at"`

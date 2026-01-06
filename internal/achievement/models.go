@@ -22,7 +22,7 @@ type AchievementDefinition struct {
 	Name             string              `db:"name" json:"name"`
 	Description      string              `db:"description" json:"description"`
 	Category         AchievementCategory `db:"category" json:"category"`
-	IconPath         string              `db:"icon_path" json:"icon_path"`
+	IconPath         *string             `db:"icon_path" json:"icon_path,omitempty"`
 	Points           int                 `db:"points" json:"points"`
 	IsSecret         bool                `db:"is_secret" json:"is_secret"`
 	RequiredCount    int                 `db:"required_count" json:"required_count"`
@@ -45,7 +45,7 @@ type CharacterAchievementWithDef struct {
 	Name             string              `db:"name" json:"name"`
 	Description      string              `db:"description" json:"description"`
 	Category         AchievementCategory `db:"category" json:"category"`
-	IconPath         string              `db:"icon_path" json:"icon_path"`
+	IconPath         *string             `db:"icon_path" json:"icon_path,omitempty"`
 	Points           int                 `db:"points" json:"points"`
 	IsSecret         bool                `db:"is_secret" json:"is_secret"`
 	RequiredCount    int                 `db:"required_count" json:"required_count"`
