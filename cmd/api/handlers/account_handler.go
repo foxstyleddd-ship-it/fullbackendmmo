@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -25,6 +26,53 @@ func NewAccountHandler(db *sqlx.DB, authRepo *auth.Repository, charRepo *charact
 	}
 }
 
+// AccountResponse is a JSON-friendly representation of an account
+type AccountResponse struct {
+	ID                uuid.UUID `json:"id"`
+	Email             string    `json:"email"`
+	EmailVerified     bool      `json:"email_verified"`
+	Username          string    `json:"username"`
+	DisplayName       *string   `json:"display_name,omitempty"`
+	DiscordID         *string   `json:"discord_id,omitempty"`
+	Status            string    `json:"status"`
+	Role              string    `json:"role"`
+	CreatedAt         time.Time `json:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at"`
+	LastLoginAt       *time.Time `json:"last_login_at,omitempty"`
+	LastLoginIP       *string   `json:"last_login_ip,omitempty"`
+	TwoFactorEnabled  bool      `json:"two_factor_enabled"`
+}
+
+// convertToAccountResponse converts an auth.Account to AccountResponse
+func convertToAccountResponse(acc *auth.Account) AccountResponse {
+	resp := AccountResponse{
+		ID:               acc.ID,
+		Email:            acc.Email,
+		EmailVerified:    acc.EmailVerified,
+		Username:         acc.Username,
+		Status:           string(acc.Status),
+		Role:             acc.Role,
+		CreatedAt:        acc.CreatedAt,
+		UpdatedAt:        acc.UpdatedAt,
+		TwoFactorEnabled: acc.TwoFactorEnabled,
+	}
+
+	if acc.DisplayName.Valid {
+		resp.DisplayName = &acc.DisplayName.String
+	}
+	if acc.DiscordID.Valid {
+		resp.DiscordID = &acc.DiscordID.String
+	}
+	if acc.LastLoginAt.Valid {
+		resp.LastLoginAt = &acc.LastLoginAt.Time
+	}
+	if acc.LastLoginIP.Valid {
+		resp.LastLoginIP = &acc.LastLoginIP.String
+	}
+
+	return resp
+}
+
 // ListAccounts returns a list of all accounts with pagination
 func (h *AccountHandler) ListAccounts(c *gin.Context) {
 	var accounts []auth.Account
@@ -42,9 +90,15 @@ func (h *AccountHandler) ListAccounts(c *gin.Context) {
 		return
 	}
 
+	// Convert to response format
+	accountResponses := make([]AccountResponse, len(accounts))
+	for i, acc := range accounts {
+		accountResponses[i] = convertToAccountResponse(&acc)
+	}
+
 	middleware.SuccessResponse(c, http.StatusOK, gin.H{
-		"accounts": accounts,
-		"count":    len(accounts),
+		"accounts": accountResponses,
+		"count":    len(accountResponses),
 	})
 }
 
@@ -71,8 +125,10 @@ func (h *AccountHandler) GetAccount(c *gin.Context) {
 		return
 	}
 
+	accountResp := convertToAccountResponse(account)
+
 	middleware.SuccessResponse(c, http.StatusOK, gin.H{
-		"account":    account,
+		"account":    accountResp,
 		"characters": characters,
 	})
 }
@@ -197,9 +253,15 @@ func (h *AccountHandler) SearchAccounts(c *gin.Context) {
 		return
 	}
 
+	// Convert to response format
+	accountResponses := make([]AccountResponse, len(accounts))
+	for i, acc := range accounts {
+		accountResponses[i] = convertToAccountResponse(&acc)
+	}
+
 	middleware.SuccessResponse(c, http.StatusOK, gin.H{
-		"accounts": accounts,
-		"count":    len(accounts),
+		"accounts": accountResponses,
+		"count":    len(accountResponses),
 		"query":    query,
 	})
 }

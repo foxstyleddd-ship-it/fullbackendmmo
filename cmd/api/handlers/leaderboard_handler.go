@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/hp-mmo/backend/internal/pkg/middleware"
@@ -18,15 +19,16 @@ func NewLeaderboardHandler(db *sqlx.DB) *LeaderboardHandler {
 }
 
 type LeaderboardEntry struct {
-	ID               string `db:"id" json:"id"`
-	Name             string `db:"name" json:"name"`
-	House            string `db:"house" json:"house"`
-	Grade            int    `db:"grade" json:"grade"`
-	Level            int    `db:"level" json:"level"`
-	Experience       int64  `db:"experience" json:"experience"`
-	HousePoints      int64  `db:"house_points" json:"house_points"`
-	AchievementCount int    `db:"achievement_count" json:"achievement_count"`
-	TotalPlaytime    int64  `db:"total_playtime_seconds" json:"total_playtime_seconds"`
+	ID               string    `db:"id" json:"id"`
+	Name             string    `db:"name" json:"name"`
+	House            string    `db:"house" json:"house"`
+	Grade            int       `db:"grade" json:"grade"`
+	Level            int       `db:"level" json:"level"`
+	Experience       int64     `db:"experience" json:"experience"`
+	HousePoints      int64     `db:"house_points" json:"house_points"`
+	AchievementCount int       `db:"achievement_count" json:"achievement_count"`
+	TotalPlaytime    int64     `db:"total_playtime_seconds" json:"total_playtime_seconds"`
+	CreatedAt        time.Time `db:"created_at" json:"created_at"`
 }
 
 // GetLeaderboard returns the overall leaderboard

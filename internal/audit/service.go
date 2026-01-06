@@ -2,6 +2,7 @@ package audit
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -18,83 +19,109 @@ func NewService(repo *Repository) *Service {
 }
 
 // LogGradeChange logs a grade change event
-func (s *Service) LogGradeChange(ctx context.Context, actorID, characterID uuid.UUID, oldGrade, newGrade int, ip, userAgent string) error {
-	oldVal := fmt.Sprintf("%d", oldGrade)
-	newVal := fmt.Sprintf("%d", newGrade)
+func (s *Service) LogGradeChange(ctx context.Context, actorID, characterID uuid.UUID, actorRole string, oldGrade, newGrade int, ip, userAgent string) error {
+	oldVal, _ := json.Marshal(map[string]interface{}{"grade": oldGrade})
+	newVal, _ := json.Marshal(map[string]interface{}{"grade": newGrade})
+
+	metadata := map[string]interface{}{
+		"user_agent": userAgent,
+		"success":    true,
+	}
+	metadataJSON, _ := json.Marshal(metadata)
+
+	reason := fmt.Sprintf("Grade changed from %d to %d", oldGrade, newGrade)
 
 	req := AuditLogRequest{
-		EventType:  "grade_change",
-		ActorID:    actorID,
-		ActorType:  "account",
-		TargetID:   characterID,
-		TargetType: "character",
-		Action:     "update_grade",
-		Details:    fmt.Sprintf("Grade changed from %d to %d", oldGrade, newGrade),
-		OldValue:   &oldVal,
-		NewValue:   &newVal,
-		IPAddress:  &ip,
-		UserAgent:  &userAgent,
-		Success:    true,
+		ActorAccountID:    actorID,
+		ActorRole:         actorRole,
+		ActorIP:           &ip,
+		TargetCharacterID: &characterID,
+		Action:            "update_grade",
+		OldValue:          oldVal,
+		NewValue:          newVal,
+		Reason:            &reason,
+		Metadata:          metadataJSON,
 	}
 
 	return s.repo.CreateAuditLog(ctx, req)
 }
 
 // LogTeleport logs a teleport event
-func (s *Service) LogTeleport(ctx context.Context, actorID, characterID uuid.UUID, fromZone, toZone string, ip, userAgent string) error {
+func (s *Service) LogTeleport(ctx context.Context, actorID, characterID uuid.UUID, actorRole string, fromZone, toZone string, ip, userAgent string) error {
+	oldVal, _ := json.Marshal(map[string]interface{}{"zone": fromZone})
+	newVal, _ := json.Marshal(map[string]interface{}{"zone": toZone})
+
+	metadata := map[string]interface{}{
+		"user_agent": userAgent,
+		"success":    true,
+	}
+	metadataJSON, _ := json.Marshal(metadata)
+
+	reason := fmt.Sprintf("Teleported from %s to %s", fromZone, toZone)
+
 	req := AuditLogRequest{
-		EventType:  "teleport",
-		ActorID:    actorID,
-		ActorType:  "account",
-		TargetID:   characterID,
-		TargetType: "character",
-		Action:     "teleport",
-		Details:    fmt.Sprintf("Teleported from %s to %s", fromZone, toZone),
-		OldValue:   &fromZone,
-		NewValue:   &toZone,
-		IPAddress:  &ip,
-		UserAgent:  &userAgent,
-		Success:    true,
+		ActorAccountID:    actorID,
+		ActorRole:         actorRole,
+		ActorIP:           &ip,
+		TargetCharacterID: &characterID,
+		Action:            "teleport",
+		OldValue:          oldVal,
+		NewValue:          newVal,
+		Reason:            &reason,
+		Metadata:          metadataJSON,
 	}
 
 	return s.repo.CreateAuditLog(ctx, req)
 }
 
 // LogItemGrant logs an item grant event
-func (s *Service) LogItemGrant(ctx context.Context, actorID, characterID, itemID uuid.UUID, quantity int, ip, userAgent string) error {
-	quantityStr := fmt.Sprintf("%d", quantity)
+func (s *Service) LogItemGrant(ctx context.Context, actorID, characterID, itemID uuid.UUID, actorRole string, quantity int, ip, userAgent string) error {
+	newVal, _ := json.Marshal(map[string]interface{}{
+		"item_id":  itemID.String(),
+		"quantity": quantity,
+	})
+
+	metadata := map[string]interface{}{
+		"user_agent": userAgent,
+		"success":    true,
+	}
+	metadataJSON, _ := json.Marshal(metadata)
+
+	reason := fmt.Sprintf("Granted %d of item %s", quantity, itemID.String())
 
 	req := AuditLogRequest{
-		EventType:  "item_grant",
-		ActorID:    actorID,
-		ActorType:  "account",
-		TargetID:   characterID,
-		TargetType: "character",
-		Action:     "grant_item",
-		Details:    fmt.Sprintf("Granted %d of item %s", quantity, itemID.String()),
-		NewValue:   &quantityStr,
-		IPAddress:  &ip,
-		UserAgent:  &userAgent,
-		Success:    true,
+		ActorAccountID:    actorID,
+		ActorRole:         actorRole,
+		ActorIP:           &ip,
+		TargetCharacterID: &characterID,
+		Action:            "grant_item",
+		NewValue:          newVal,
+		Reason:            &reason,
+		Metadata:          metadataJSON,
 	}
 
 	return s.repo.CreateAuditLog(ctx, req)
 }
 
 // LogAdminAction logs a generic admin action
-func (s *Service) LogAdminAction(ctx context.Context, actorID, targetID uuid.UUID, action, details string, success bool, errorMsg *string, ip, userAgent string) error {
+func (s *Service) LogAdminAction(ctx context.Context, actorID uuid.UUID, actorRole string, targetID *uuid.UUID, action, details string, success bool, errorMsg *string, ip, userAgent string) error {
+	metadata := map[string]interface{}{
+		"user_agent": userAgent,
+		"success":    success,
+	}
+	if errorMsg != nil {
+		metadata["error_message"] = *errorMsg
+	}
+	metadataJSON, _ := json.Marshal(metadata)
+
 	req := AuditLogRequest{
-		EventType:    "admin_action",
-		ActorID:      actorID,
-		ActorType:    "account",
-		TargetID:     targetID,
-		TargetType:   "character",
-		Action:       action,
-		Details:      details,
-		IPAddress:    &ip,
-		UserAgent:    &userAgent,
-		Success:      success,
-		ErrorMessage: errorMsg,
+		ActorAccountID:    actorID,
+		ActorRole:         actorRole,
+		ActorIP:           &ip,
+		TargetCharacterID: targetID,
+		Action:            action,
+		Reason:            &details,
+		Metadata:          metadataJSON,
 	}
 
 	return s.repo.CreateAuditLog(ctx, req)
