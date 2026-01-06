@@ -103,7 +103,7 @@ class APIService {
     return response.data.data;
   }
 
-  async createCharacter(data: { name: string; house: string; appearance: any }): Promise<Character> {
+  async createCharacter(data: { name: string; house: string; appearance_data: any }): Promise<Character> {
     const response = await this.client.post<APIResponse<Character>>('/characters', data);
     return response.data.data;
   }

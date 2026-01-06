@@ -1,0 +1,6 @@
+-- Note: PostgreSQL does not support removing enum values in a simple way
+-- If you need to remove 'no_house', you would need to:
+-- 1. Create a new enum without 'no_house'
+-- 2. Migrate all data
+-- 3. Drop the old enum and rename the new one
+-- This is intentionally left empty as it's a one-way migration

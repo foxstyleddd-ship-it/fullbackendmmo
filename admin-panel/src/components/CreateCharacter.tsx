@@ -3,11 +3,12 @@ import { apiService } from '../services/api';
 
 export default function CreateCharacter() {
   const [name, setName] = useState('');
-  const [house, setHouse] = useState('brumval');
+  const [house, setHouse] = useState('no_house');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
 
   const houses = [
+    { value: 'no_house', label: 'Pas de maison', color: 'text-gray-700' },
     { value: 'brumval', label: 'Brumval', color: 'text-red-700' },
     { value: 'aerwyn', label: 'Aerwyn', color: 'text-green-700' },
     { value: 'falcon', label: 'Falcon', color: 'text-yellow-700' },
@@ -29,7 +30,7 @@ export default function CreateCharacter() {
       const character = await apiService.createCharacter({
         name,
         house,
-        appearance: {}
+        appearance_data: {}
       });
 
       setMessage({
@@ -39,7 +40,7 @@ export default function CreateCharacter() {
 
       // Reset form
       setName('');
-      setHouse('brumval');
+      setHouse('no_house');
     } catch (error: any) {
       setMessage({
         type: 'error',

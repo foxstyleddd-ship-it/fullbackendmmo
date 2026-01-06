@@ -68,8 +68,8 @@ type CharacterCurrency struct {
 // CreateCharacterRequest represents character creation request
 type CreateCharacterRequest struct {
 	Name           string          `json:"name" binding:"required,min=3,max=64"`
-	House          string          `json:"house" binding:"required,oneof=venatrix aerwyn falcon brumval"`
-	AppearanceData json.RawMessage `json:"appearance_data" binding:"required"`
+	House          string          `json:"house" binding:"omitempty,oneof=venatrix aerwyn falcon brumval no_house"`
+	AppearanceData json.RawMessage `json:"appearance_data"`
 }
 
 // CharacterDetailResponse represents detailed character response
