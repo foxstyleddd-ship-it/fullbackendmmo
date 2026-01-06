@@ -73,6 +73,16 @@ func (h *AdminHandler) ExecuteCommand(c *gin.Context) {
 		return
 	}
 
+	// Get admin role from context
+	adminRole, exists := c.Get("role")
+	if !exists {
+		adminRole = "player" // default fallback
+	}
+	adminRoleStr, ok := adminRole.(string)
+	if !ok {
+		adminRoleStr = "player"
+	}
+
 	// Get client info for audit log
 	ip := c.ClientIP()
 	userAgent := c.GetHeader("User-Agent")
@@ -84,10 +94,10 @@ func (h *AdminHandler) ExecuteCommand(c *gin.Context) {
 	switch req.Command {
 	case "addhousepoints":
 		// For house points, target_id is the house name (no UUID parsing needed)
-		response, err = h.executeAddHousePoints(c, adminUUID, req.TargetID, req.Parameters, ip, userAgent)
+		response, err = h.executeAddHousePoints(c, adminUUID, adminRoleStr, req.TargetID, req.Parameters, ip, userAgent)
 	case "removehousepoints":
 		// For house points, target_id is the house name (no UUID parsing needed)
-		response, err = h.executeRemoveHousePoints(c, adminUUID, req.TargetID, req.Parameters, ip, userAgent)
+		response, err = h.executeRemoveHousePoints(c, adminUUID, adminRoleStr, req.TargetID, req.Parameters, ip, userAgent)
 	case "setgrade", "teleport", "grantitem", "grantspell", "removespell":
 		// Parse target ID as UUID for character-specific commands
 		targetID, err = uuid.Parse(req.TargetID)
@@ -99,15 +109,15 @@ func (h *AdminHandler) ExecuteCommand(c *gin.Context) {
 		// Execute character-specific command
 		switch req.Command {
 		case "setgrade":
-			response, err = h.executeSetGrade(c, adminUUID, targetID, req.Parameters, ip, userAgent)
+			response, err = h.executeSetGrade(c, adminUUID, adminRoleStr, targetID, req.Parameters, ip, userAgent)
 		case "teleport":
-			response, err = h.executeTeleport(c, adminUUID, targetID, req.Parameters, ip, userAgent)
+			response, err = h.executeTeleport(c, adminUUID, adminRoleStr, targetID, req.Parameters, ip, userAgent)
 		case "grantitem":
-			response, err = h.executeGrantItem(c, adminUUID, targetID, req.Parameters, ip, userAgent)
+			response, err = h.executeGrantItem(c, adminUUID, adminRoleStr, targetID, req.Parameters, ip, userAgent)
 		case "grantspell":
-			response, err = h.executeGrantSpell(c, adminUUID, targetID, req.Parameters, ip, userAgent)
+			response, err = h.executeGrantSpell(c, adminUUID, adminRoleStr, targetID, req.Parameters, ip, userAgent)
 		case "removespell":
-			response, err = h.executeRemoveSpell(c, adminUUID, targetID, req.Parameters, ip, userAgent)
+			response, err = h.executeRemoveSpell(c, adminUUID, adminRoleStr, targetID, req.Parameters, ip, userAgent)
 		}
 	default:
 		middleware.ErrorResponse(c, http.StatusBadRequest, "UNKNOWN_COMMAND", fmt.Sprintf("Unknown command: %s", req.Command), nil)
@@ -117,7 +127,11 @@ func (h *AdminHandler) ExecuteCommand(c *gin.Context) {
 	if err != nil {
 		// Log failed attempt
 		errorMsg := err.Error()
-		_ = h.auditService.LogAdminAction(c.Request.Context(), adminUUID, targetID, req.Command, fmt.Sprintf("Failed: %s", errorMsg), false, &errorMsg, ip, userAgent)
+		targetIDPtr := &targetID
+		if targetID == uuid.Nil {
+			targetIDPtr = nil
+		}
+		_ = h.auditService.LogAdminAction(c.Request.Context(), adminUUID, adminRoleStr, targetIDPtr, req.Command, fmt.Sprintf("Failed: %s", errorMsg), false, &errorMsg, ip, userAgent)
 
 		middleware.ErrorResponse(c, http.StatusInternalServerError, "COMMAND_FAILED", err.Error(), nil)
 		return
@@ -127,7 +141,7 @@ func (h *AdminHandler) ExecuteCommand(c *gin.Context) {
 }
 
 // executeSetGrade handles the setgrade command
-func (h *AdminHandler) executeSetGrade(c *gin.Context, adminID, targetID uuid.UUID, params map[string]interface{}, ip, userAgent string) (*ExecuteCommandResponse, error) {
+func (h *AdminHandler) executeSetGrade(c *gin.Context, adminID uuid.UUID, adminRole string, targetID uuid.UUID, params map[string]interface{}, ip, userAgent string) (*ExecuteCommandResponse, error) {
 	// Parse new grade
 	newGradeFloat, ok := params["grade"].(float64)
 	if !ok {
@@ -148,7 +162,7 @@ func (h *AdminHandler) executeSetGrade(c *gin.Context, adminID, targetID uuid.UU
 	}
 
 	// Log audit
-	if err := h.auditService.LogGradeChange(c.Request.Context(), adminID, targetID, oldGrade, newGrade, ip, userAgent); err != nil {
+	if err := h.auditService.LogGradeChange(c.Request.Context(), adminID, targetID, adminRole, oldGrade, newGrade, ip, userAgent); err != nil {
 		// Log error but don't fail the command
 		fmt.Printf("Failed to log grade change audit: %v\n", err)
 	}
@@ -165,7 +179,7 @@ func (h *AdminHandler) executeSetGrade(c *gin.Context, adminID, targetID uuid.UU
 }
 
 // executeTeleport handles the teleport command
-func (h *AdminHandler) executeTeleport(c *gin.Context, adminID, targetID uuid.UUID, params map[string]interface{}, ip, userAgent string) (*ExecuteCommandResponse, error) {
+func (h *AdminHandler) executeTeleport(c *gin.Context, adminID uuid.UUID, adminRole string, targetID uuid.UUID, params map[string]interface{}, ip, userAgent string) (*ExecuteCommandResponse, error) {
 	// Parse zone ID
 	zoneID, ok := params["zone_id"].(string)
 	if !ok || zoneID == "" {
@@ -200,7 +214,7 @@ func (h *AdminHandler) executeTeleport(c *gin.Context, adminID, targetID uuid.UU
 	}
 
 	// Log audit
-	if err := h.auditService.LogTeleport(c.Request.Context(), adminID, targetID, oldZone, zoneID, ip, userAgent); err != nil {
+	if err := h.auditService.LogTeleport(c.Request.Context(), adminID, targetID, adminRole, oldZone, zoneID, ip, userAgent); err != nil {
 		fmt.Printf("Failed to log teleport audit: %v\n", err)
 	}
 
@@ -221,7 +235,7 @@ func (h *AdminHandler) executeTeleport(c *gin.Context, adminID, targetID uuid.UU
 }
 
 // executeGrantItem handles the grantitem command
-func (h *AdminHandler) executeGrantItem(c *gin.Context, adminID, targetID uuid.UUID, params map[string]interface{}, ip, userAgent string) (*ExecuteCommandResponse, error) {
+func (h *AdminHandler) executeGrantItem(c *gin.Context, adminID uuid.UUID, adminRole string, targetID uuid.UUID, params map[string]interface{}, ip, userAgent string) (*ExecuteCommandResponse, error) {
 	// Parse item definition ID (string, not UUID)
 	itemDefID, ok := params["item_def_id"].(string)
 	if !ok || itemDefID == "" {
@@ -249,7 +263,7 @@ func (h *AdminHandler) executeGrantItem(c *gin.Context, adminID, targetID uuid.U
 
 	// Log audit (the inventory service already creates a transaction ledger)
 	// We use UUID zero for the item_id in audit since it's an item_def_id
-	if err := h.auditService.LogItemGrant(c.Request.Context(), adminID, targetID, uuid.Nil, quantity, ip, userAgent); err != nil {
+	if err := h.auditService.LogItemGrant(c.Request.Context(), adminID, targetID, uuid.Nil, adminRole, quantity, ip, userAgent); err != nil {
 		fmt.Printf("Failed to log item grant audit: %v\n", err)
 	}
 
@@ -265,7 +279,7 @@ func (h *AdminHandler) executeGrantItem(c *gin.Context, adminID, targetID uuid.U
 }
 
 // executeGrantSpell handles the grantspell command
-func (h *AdminHandler) executeGrantSpell(c *gin.Context, adminID, targetID uuid.UUID, params map[string]interface{}, ip, userAgent string) (*ExecuteCommandResponse, error) {
+func (h *AdminHandler) executeGrantSpell(c *gin.Context, adminID uuid.UUID, adminRole string, targetID uuid.UUID, params map[string]interface{}, ip, userAgent string) (*ExecuteCommandResponse, error) {
 	// Parse spell ID
 	spellID, ok := params["spell_id"].(string)
 	if !ok || spellID == "" {
@@ -286,7 +300,8 @@ func (h *AdminHandler) executeGrantSpell(c *gin.Context, adminID, targetID uuid.
 
 	// Log admin action
 	details := fmt.Sprintf("Granted spell %s to character %s", spellID, char.Name)
-	_ = h.auditService.LogAdminAction(c.Request.Context(), adminID, targetID, "grant_spell", details, true, nil, ip, userAgent)
+	targetIDPtr := &targetID
+	_ = h.auditService.LogAdminAction(c.Request.Context(), adminID, adminRole, targetIDPtr, "grant_spell", details, true, nil, ip, userAgent)
 
 	return &ExecuteCommandResponse{
 		Success: true,
@@ -299,7 +314,7 @@ func (h *AdminHandler) executeGrantSpell(c *gin.Context, adminID, targetID uuid.
 }
 
 // executeRemoveSpell handles the removespell command
-func (h *AdminHandler) executeRemoveSpell(c *gin.Context, adminID, targetID uuid.UUID, params map[string]interface{}, ip, userAgent string) (*ExecuteCommandResponse, error) {
+func (h *AdminHandler) executeRemoveSpell(c *gin.Context, adminID uuid.UUID, adminRole string, targetID uuid.UUID, params map[string]interface{}, ip, userAgent string) (*ExecuteCommandResponse, error) {
 	// Parse spell ID
 	spellID, ok := params["spell_id"].(string)
 	if !ok || spellID == "" {
@@ -320,7 +335,8 @@ func (h *AdminHandler) executeRemoveSpell(c *gin.Context, adminID, targetID uuid
 
 	// Log admin action
 	details := fmt.Sprintf("Removed spell %s from character %s", spellID, char.Name)
-	_ = h.auditService.LogAdminAction(c.Request.Context(), adminID, targetID, "remove_spell", details, true, nil, ip, userAgent)
+	targetIDPtr := &targetID
+	_ = h.auditService.LogAdminAction(c.Request.Context(), adminID, adminRole, targetIDPtr, "remove_spell", details, true, nil, ip, userAgent)
 
 	return &ExecuteCommandResponse{
 		Success: true,
@@ -398,7 +414,7 @@ func (h *AdminHandler) GetAdminAuditLogs(c *gin.Context) {
 }
 
 // executeAddHousePoints adds house points to ALL members of a house
-func (h *AdminHandler) executeAddHousePoints(c *gin.Context, adminID uuid.UUID, house string, params map[string]interface{}, ip, userAgent string) (*ExecuteCommandResponse, error) {
+func (h *AdminHandler) executeAddHousePoints(c *gin.Context, adminID uuid.UUID, adminRole string, house string, params map[string]interface{}, ip, userAgent string) (*ExecuteCommandResponse, error) {
 	points, ok := params["points"].(float64)
 	if !ok || points <= 0 {
 		return nil, fmt.Errorf("points parameter is required and must be positive")
@@ -424,7 +440,7 @@ func (h *AdminHandler) executeAddHousePoints(c *gin.Context, adminID uuid.UUID, 
 	affected, _ := result.RowsAffected()
 
 	details := fmt.Sprintf("Added %d house points to %s (affected %d characters)", pointsInt, house, affected)
-	_ = h.auditService.LogAdminAction(c.Request.Context(), adminID, uuid.Nil, "add_house_points", details, true, nil, ip, userAgent)
+	_ = h.auditService.LogAdminAction(c.Request.Context(), adminID, adminRole, nil, "add_house_points", details, true, nil, ip, userAgent)
 
 	return &ExecuteCommandResponse{
 		Success: true,
@@ -438,7 +454,7 @@ func (h *AdminHandler) executeAddHousePoints(c *gin.Context, adminID uuid.UUID, 
 }
 
 // executeRemoveHousePoints removes house points from ALL members of a house
-func (h *AdminHandler) executeRemoveHousePoints(c *gin.Context, adminID uuid.UUID, house string, params map[string]interface{}, ip, userAgent string) (*ExecuteCommandResponse, error) {
+func (h *AdminHandler) executeRemoveHousePoints(c *gin.Context, adminID uuid.UUID, adminRole string, house string, params map[string]interface{}, ip, userAgent string) (*ExecuteCommandResponse, error) {
 	points, ok := params["points"].(float64)
 	if !ok || points <= 0 {
 		return nil, fmt.Errorf("points parameter is required and must be positive")
@@ -464,7 +480,7 @@ func (h *AdminHandler) executeRemoveHousePoints(c *gin.Context, adminID uuid.UUI
 	affected, _ := result.RowsAffected()
 
 	details := fmt.Sprintf("Removed %d house points from %s (affected %d characters)", pointsInt, house, affected)
-	_ = h.auditService.LogAdminAction(c.Request.Context(), adminID, uuid.Nil, "remove_house_points", details, true, nil, ip, userAgent)
+	_ = h.auditService.LogAdminAction(c.Request.Context(), adminID, adminRole, nil, "remove_house_points", details, true, nil, ip, userAgent)
 
 	return &ExecuteCommandResponse{
 		Success: true,

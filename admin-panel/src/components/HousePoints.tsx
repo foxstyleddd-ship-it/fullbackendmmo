@@ -3,7 +3,7 @@ import { apiService } from '../services/api';
 
 export default function HousePoints() {
   const [action, setAction] = useState<'add' | 'remove' | 'reset'>('add');
-  const [house, setHouse] = useState('gryffindor');
+  const [house, setHouse] = useState('brumval');
   const [points, setPoints] = useState('');
   const [characterName, setCharacterName] = useState('');
   const [reason, setReason] = useState('');
@@ -11,10 +11,10 @@ export default function HousePoints() {
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   const houses = [
-    { value: 'gryffindor', label: 'Gryffindor', color: 'text-red-700', bg: 'bg-red-50' },
-    { value: 'slytherin', label: 'Slytherin', color: 'text-green-700', bg: 'bg-green-50' },
-    { value: 'hufflepuff', label: 'Hufflepuff', color: 'text-yellow-700', bg: 'bg-yellow-50' },
-    { value: 'ravenclaw', label: 'Ravenclaw', color: 'text-blue-700', bg: 'bg-blue-50' },
+    { value: 'brumval', label: 'Brumval', color: 'text-red-700', bg: 'bg-red-50' },
+    { value: 'aerwyn', label: 'Aerwyn', color: 'text-green-700', bg: 'bg-green-50' },
+    { value: 'falcon', label: 'Falcon', color: 'text-yellow-700', bg: 'bg-yellow-50' },
+    { value: 'venatrix', label: 'Venatrix', color: 'text-blue-700', bg: 'bg-blue-50' },
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {

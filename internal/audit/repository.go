@@ -22,29 +22,26 @@ func NewRepository(db *sqlx.DB) *Repository {
 func (r *Repository) CreateAuditLog(ctx context.Context, req AuditLogRequest) error {
 	query := `
 		INSERT INTO audit_logs (
-			id, event_type, actor_id, actor_type, target_id, target_type,
-			action, details, old_value, new_value, ip_address, user_agent,
-			success, error_message
+			id, actor_account_id, actor_role, actor_ip,
+			target_account_id, target_character_id,
+			action, old_value, new_value, reason, metadata
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
 		)
 	`
 
 	_, err := r.db.ExecContext(ctx, query,
 		uuid.New(),
-		req.EventType,
-		req.ActorID,
-		req.ActorType,
-		req.TargetID,
-		req.TargetType,
+		req.ActorAccountID,
+		req.ActorRole,
+		req.ActorIP,
+		req.TargetAccountID,
+		req.TargetCharacterID,
 		req.Action,
-		req.Details,
 		req.OldValue,
 		req.NewValue,
-		req.IPAddress,
-		req.UserAgent,
-		req.Success,
-		req.ErrorMessage,
+		req.Reason,
+		req.Metadata,
 	)
 
 	if err != nil {
@@ -57,11 +54,11 @@ func (r *Repository) CreateAuditLog(ctx context.Context, req AuditLogRequest) er
 // GetAuditLogsByTarget retrieves audit logs for a specific target
 func (r *Repository) GetAuditLogsByTarget(ctx context.Context, targetID uuid.UUID, limit int) ([]AuditLog, error) {
 	query := `
-		SELECT id, event_type, actor_id, actor_type, target_id, target_type,
-		       action, details, old_value, new_value, ip_address, user_agent,
-		       success, error_message, created_at
+		SELECT id, actor_account_id, actor_role, actor_ip,
+		       target_account_id, target_character_id,
+		       action, old_value, new_value, reason, metadata, created_at
 		FROM audit_logs
-		WHERE target_id = $1
+		WHERE target_character_id = $1
 		ORDER BY created_at DESC
 		LIMIT $2
 	`
@@ -78,11 +75,11 @@ func (r *Repository) GetAuditLogsByTarget(ctx context.Context, targetID uuid.UUI
 // GetAuditLogsByActor retrieves audit logs for a specific actor
 func (r *Repository) GetAuditLogsByActor(ctx context.Context, actorID uuid.UUID, limit int) ([]AuditLog, error) {
 	query := `
-		SELECT id, event_type, actor_id, actor_type, target_id, target_type,
-		       action, details, old_value, new_value, ip_address, user_agent,
-		       success, error_message, created_at
+		SELECT id, actor_account_id, actor_role, actor_ip,
+		       target_account_id, target_character_id,
+		       action, old_value, new_value, reason, metadata, created_at
 		FROM audit_logs
-		WHERE actor_id = $1
+		WHERE actor_account_id = $1
 		ORDER BY created_at DESC
 		LIMIT $2
 	`
@@ -96,20 +93,20 @@ func (r *Repository) GetAuditLogsByActor(ctx context.Context, actorID uuid.UUID,
 	return logs, nil
 }
 
-// GetAuditLogsByEventType retrieves audit logs by event type
-func (r *Repository) GetAuditLogsByEventType(ctx context.Context, eventType string, limit int) ([]AuditLog, error) {
+// GetAuditLogsByAction retrieves audit logs by action type
+func (r *Repository) GetAuditLogsByAction(ctx context.Context, action string, limit int) ([]AuditLog, error) {
 	query := `
-		SELECT id, event_type, actor_id, actor_type, target_id, target_type,
-		       action, details, old_value, new_value, ip_address, user_agent,
-		       success, error_message, created_at
+		SELECT id, actor_account_id, actor_role, actor_ip,
+		       target_account_id, target_character_id,
+		       action, old_value, new_value, reason, metadata, created_at
 		FROM audit_logs
-		WHERE event_type = $1
+		WHERE action = $1
 		ORDER BY created_at DESC
 		LIMIT $2
 	`
 
 	var logs []AuditLog
-	err := r.db.SelectContext(ctx, &logs, query, eventType, limit)
+	err := r.db.SelectContext(ctx, &logs, query, action, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get audit logs: %w", err)
 	}
