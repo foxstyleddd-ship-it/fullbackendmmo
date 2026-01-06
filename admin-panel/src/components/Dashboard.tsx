@@ -10,12 +10,14 @@ import Leaderboard from './Leaderboard';
 import AccountList from './AccountList';
 import CharacterDetail from './CharacterDetail';
 import HousePoints from './HousePoints';
+import Notebooks from './Notebooks';
+import GradeReport from './GradeReport';
 
 interface DashboardProps {
   onLogout: () => void;
 }
 
-type Tab = 'characters' | 'character-detail' | 'accounts' | 'create-account' | 'create-character' | 'achievements' | 'friends' | 'leaderboard' | 'house-points' | 'audit';
+type Tab = 'characters' | 'character-detail' | 'accounts' | 'create-account' | 'create-character' | 'achievements' | 'friends' | 'leaderboard' | 'house-points' | 'notebooks' | 'grades' | 'audit';
 
 export default function Dashboard({ onLogout }: DashboardProps) {
   const [activeTab, setActiveTab] = useState<Tab>('characters');
@@ -138,6 +140,26 @@ export default function Dashboard({ onLogout }: DashboardProps) {
               House Points
             </button>
             <button
+              onClick={() => setActiveTab('notebooks')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
+                activeTab === 'notebooks'
+                  ? 'border-purple-500 text-purple-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Carnets
+            </button>
+            <button
+              onClick={() => setActiveTab('grades')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
+                activeTab === 'grades'
+                  ? 'border-purple-500 text-purple-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Notes & Bulletins
+            </button>
+            <button
               onClick={() => setActiveTab('audit')}
               className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
                 activeTab === 'audit'
@@ -162,6 +184,8 @@ export default function Dashboard({ onLogout }: DashboardProps) {
         {activeTab === 'friends' && <Friends />}
         {activeTab === 'leaderboard' && <Leaderboard />}
         {activeTab === 'house-points' && <HousePoints />}
+        {activeTab === 'notebooks' && <Notebooks />}
+        {activeTab === 'grades' && <GradeReport />}
         {activeTab === 'audit' && <AuditLogsViewer />}
       </main>
     </div>

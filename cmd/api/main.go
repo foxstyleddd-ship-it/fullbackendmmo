@@ -19,6 +19,7 @@ import (
 	"github.com/hp-mmo/backend/internal/character"
 	"github.com/hp-mmo/backend/internal/friends"
 	"github.com/hp-mmo/backend/internal/inventory"
+	"github.com/hp-mmo/backend/internal/notebook"
 	"github.com/hp-mmo/backend/internal/pkg/config"
 	"github.com/hp-mmo/backend/internal/pkg/db"
 	"github.com/hp-mmo/backend/internal/pkg/logger"
@@ -64,6 +65,7 @@ func main() {
 	spellRepo := spell.NewRepository(database)
 	achievementRepo := achievement.NewRepository(database)
 	friendsRepo := friends.NewRepository(database)
+	notebookRepo := notebook.NewRepository(database)
 
 	// Initialize services
 	jwtService := auth.NewJWTService(
@@ -79,6 +81,7 @@ func main() {
 	spellService := spell.NewService(spellRepo, charRepo, database)
 	achievementService := achievement.NewService(achievementRepo, database)
 	friendsService := friends.NewService(friendsRepo)
+	notebookService := notebook.NewService(notebookRepo)
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService, charRepo)
@@ -90,6 +93,7 @@ func main() {
 	friendsHandler := handlers.NewFriendsHandler(friendsService)
 	leaderboardHandler := handlers.NewLeaderboardHandler(database)
 	accountHandler := handlers.NewAccountHandler(database, authRepo, charRepo)
+	notebookHandler := handlers.NewNotebookHandler(notebookService)
 
 	// Setup Gin
 	if cfg.Env == "production" {
@@ -162,6 +166,43 @@ func main() {
 			// Friends routes (nested under character)
 			charGroup.GET("/:id/friends", friendsHandler.GetFriends)
 			charGroup.GET("/:id/friends/requests", friendsHandler.GetPendingRequests)
+
+			// Notebook routes (nested under character)
+			charGroup.GET("/:id/notebooks", notebookHandler.GetCharacterNotebooks)
+
+			// Grades routes (nested under character)
+			charGroup.GET("/:id/grades", notebookHandler.GetCharacterGrades)
+
+			// Report cards routes (nested under character)
+			charGroup.GET("/:id/report-cards", notebookHandler.GetAllReportCards)
+			charGroup.GET("/:id/report-cards/:year", notebookHandler.GetReportCard)
+		}
+
+		// Notebook CRUD (authenticated)
+		notebookGroup := v1.Group("/notebooks")
+		notebookGroup.Use(middleware.AuthMiddleware(jwtService))
+		{
+			notebookGroup.POST("", notebookHandler.CreateNotebook)
+			notebookGroup.GET("/:id", notebookHandler.GetNotebook)
+			notebookGroup.PUT("/:id", notebookHandler.UpdateNotebook)
+			notebookGroup.DELETE("/:id", notebookHandler.DeleteNotebook)
+		}
+
+		// Grade CRUD (authenticated, admin only for creation/deletion)
+		gradeGroup := v1.Group("/grades")
+		gradeGroup.Use(middleware.AuthMiddleware(jwtService))
+		{
+			gradeGroup.POST("", middleware.RequireRole("gm", "admin", "superadmin"), notebookHandler.CreateGrade)
+			gradeGroup.DELETE("/:id", middleware.RequireRole("gm", "admin", "superadmin"), notebookHandler.DeleteGrade)
+		}
+
+		// Report Card CRUD (authenticated, admin only)
+		reportCardGroup := v1.Group("/report-cards")
+		reportCardGroup.Use(middleware.AuthMiddleware(jwtService))
+		reportCardGroup.Use(middleware.RequireRole("gm", "admin", "superadmin"))
+		{
+			reportCardGroup.POST("", notebookHandler.CreateReportCard)
+			reportCardGroup.DELETE("/:id", notebookHandler.DeleteReportCard)
 		}
 
 		// Friend actions (authenticated)
