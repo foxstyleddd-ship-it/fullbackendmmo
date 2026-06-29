@@ -53,6 +53,18 @@ func validSig(userID, amount, txn, provided string) bool {
 	return hmac.Equal([]byte(want), []byte(strings.ToLower(strings.TrimSpace(provided))))
 }
 
+// SimulateReward (admin) déclenche une récompense comme si une régie avait
+// appelé le postback — pour tester tout le pipeline avant d'avoir un vrai compte.
+func (s *Store) SimulateReward(username string, micro int64) (*WatchResult, error) {
+	s.mu.RLock()
+	id := s.byName[strings.ToLower(strings.TrimSpace(username))]
+	s.mu.RUnlock()
+	if id == "" {
+		return nil, errors.New("joueur introuvable")
+	}
+	return s.CreditReward(id, micro, "sim-"+token(8))
+}
+
 // CreditReward applique un postback de régie : crédite la cagnotte et le poids.
 func (s *Store) CreditReward(userID string, amountMicro int64, txn string) (*WatchResult, error) {
 	if amountMicro <= 0 || txn == "" {

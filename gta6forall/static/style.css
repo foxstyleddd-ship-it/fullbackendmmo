@@ -3,9 +3,11 @@
   --bg:#0a0612; --bg2:#140a24; --card:rgba(28,16,48,.72); --line:rgba(255,255,255,.09);
   --text:#f3eaff; --muted:#a892c9;
 }
-*{box-sizing:border-box;margin:0;padding:0}
+*{box-sizing:border-box;margin:0;padding:0;min-width:0}
+html,body{max-width:100%;overflow-x:hidden}
 html{scroll-behavior:smooth}
-body{font-family:'Outfit',system-ui,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;position:relative}
+body{font-family:'Outfit',system-ui,sans-serif;background:var(--bg);color:var(--text);position:relative}
+img,input,svg{max-width:100%}
 .bg-grid{position:fixed;inset:0;z-index:-2;background-image:linear-gradient(rgba(122,31,255,.12) 1px,transparent 1px),linear-gradient(90deg,rgba(31,224,255,.10) 1px,transparent 1px);background-size:46px 46px;mask-image:linear-gradient(180deg,transparent,#000 25%,#000 75%,transparent)}
 .bg-glow{position:fixed;inset:0;z-index:-3;background:radial-gradient(60% 50% at 20% 0%,rgba(255,46,136,.28),transparent 60%),radial-gradient(50% 40% at 90% 8%,rgba(31,224,255,.22),transparent 60%),radial-gradient(70% 60% at 50% 100%,rgba(122,31,255,.25),transparent 60%)}
 
@@ -36,7 +38,8 @@ body{font-family:'Outfit',system-ui,sans-serif;background:var(--bg);color:var(--
 /* ===================== HUB (1 écran) ===================== */
 .hub{min-height:100svh;max-width:1180px;margin:0 auto;padding:14px 16px 18px;display:flex;flex-direction:column;gap:12px}
 
-.topbar{display:flex;justify-content:space-between;align-items:center}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+#auth-mini{flex-wrap:wrap;justify-content:flex-end}
 .logo{font-weight:900;font-size:24px;letter-spacing:-1px;text-shadow:0 0 18px rgba(255,46,136,.5)}
 .logo span{color:var(--pink)}
 .top-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
@@ -63,7 +66,8 @@ body{font-family:'Outfit',system-ui,sans-serif;background:var(--bg);color:var(--
 .spot.filled:hover{box-shadow:0 14px 36px rgba(0,0,0,.4),0 0 0 1px var(--spot,#7a1fff)}
 .spot-emoji{font-size:30px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.5))}
 .spot-brand{font-weight:900;font-size:16px;letter-spacing:-.3px;position:relative}
-.spot-title{font-size:12.5px;color:var(--muted);line-height:1.35;position:relative;margin-top:2px}
+.spot-title{font-size:12.5px;color:var(--muted);line-height:1.35;position:relative;margin-top:2px;overflow-wrap:anywhere}
+.spot-brand{overflow-wrap:anywhere}
 .spot-cta{position:relative;margin-top:8px;font-size:11px;font-weight:800;letter-spacing:.5px;color:var(--spot,#fff);text-transform:uppercase}
 .spot-tag{position:absolute;top:9px;right:11px;font-size:9px;letter-spacing:1.5px;color:var(--muted);font-weight:800}
 /* spot libre */

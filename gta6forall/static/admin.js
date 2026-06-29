@@ -33,6 +33,22 @@ $("admin-enter").onclick = async () => {
   } catch (e) { $("admin-err").textContent = e.message; }
 };
 
+// --- test du système d'ads -------------------------------------------------
+$("sim-btn").onclick = async () => {
+  const msg = $("sim-msg");
+  msg.textContent = "";
+  msg.style.color = "";
+  try {
+    const res = await api("/api/admin/simulate-reward", {
+      username: $("sim-user").value.trim(),
+      euros: parseFloat($("sim-euros").value) || 0,
+    }, true);
+    msg.style.color = "var(--cyan)";
+    const drop = res.newWins && res.newWins.length ? ` · 🎮 DROP pour ${res.newWins[0].username} !` : "";
+    msg.textContent = `✓ +${euro(res.reward)} € générés, joueur à ${res.weight} poids${drop}`;
+  } catch (e) { msg.textContent = e.message; }
+};
+
 // --- spots -----------------------------------------------------------------
 async function loadSlots() {
   const data = await api("/api/ads");

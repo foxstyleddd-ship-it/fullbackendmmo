@@ -39,6 +39,7 @@ func main() {
 	mux.HandleFunc("/api/chat", handleChat)
 	mux.HandleFunc("/api/admin/slot", handleAdminSlot)
 	mux.HandleFunc("/api/admin/slot/clear", handleAdminClear)
+	mux.HandleFunc("/api/admin/simulate-reward", handleAdminSimulate)
 	mux.HandleFunc("/admin", servePage("admin.html"))
 
 	log.Printf("🎮 GTA6forall en écoute sur http://localhost%s", addr)
@@ -371,4 +372,29 @@ func handleAdminClear(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, 200, map[string]bool{"ok": true})
+}
+
+func handleAdminSimulate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeErr(w, 405, "méthode non autorisée")
+		return
+	}
+	if !requireAdmin(w, r) {
+		return
+	}
+	var req struct {
+		Username string  `json:"username"`
+		Euros    float64 `json:"euros"`
+	}
+	if decode(r, &req) != nil {
+		writeErr(w, 400, "requête invalide")
+		return
+	}
+	micro := int64(req.Euros * 1_000_000)
+	res, err := store.SimulateReward(req.Username, micro)
+	if err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	writeJSON(w, 200, res)
 }

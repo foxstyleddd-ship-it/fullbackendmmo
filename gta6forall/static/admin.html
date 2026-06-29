@@ -30,6 +30,17 @@
   <!-- gestion des spots -->
   <section id="admin-panel" class="hidden" style="margin-top:24px;display:flex;flex-direction:column;gap:16px">
     <div class="card">
+      <h3>🧪 Tester le système d'ads</h3>
+      <p class="muted">Simule une récompense de régie : ça passe par <b>exactement le même code</b> qu'un vrai postback (crédite la cagnotte + le poids du joueur, et peut déclencher un drop). Pratique avant d'avoir un compte régie validé.</p>
+      <div class="slot-edit-row" style="margin-top:10px">
+        <input id="sim-user" placeholder="Pseudo du joueur" />
+        <input id="sim-euros" type="number" min="0" step="0.5" placeholder="€ générés" style="max-width:140px" />
+        <button class="btn btn-cyan" id="sim-btn">Simuler</button>
+      </div>
+      <div id="sim-msg" class="form-err"></div>
+    </div>
+
+    <div class="card">
       <h3>📢 Emplacements publicitaires</h3>
       <p class="muted">Saisis les deals vendus aux marques. Le prix payé (en €) finance la cagnotte GTA6 (moins 5% de marge). Laisse le prix à 0 pour un placement gratuit/maison.</p>
       <div id="slots-admin" class="slots-admin"></div>
