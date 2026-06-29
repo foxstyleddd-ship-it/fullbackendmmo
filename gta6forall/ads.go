@@ -23,17 +23,24 @@ type AdSlot struct {
 	Filled bool   `json:"filled"`
 }
 
-// seedSlots crée le hub de départ : quelques marques "démo" + des spots libres.
+// seedSlots crée le hub de départ avec des annonces "types" pour montrer le
+// rendu. (Le owner les remplace par ses vrais deals dans /admin.)
 func seedSlots() []*AdSlot {
 	demo := []*AdSlot{
-		{Brand: "Sprunk", Title: "La boisson n°1 de Los Santos", Emoji: "🥤", Color: "#1fe0ff", Filled: true, Price: SpotPrice},
-		{Brand: "Maze Bank", Title: "Ouvre un compte, +5000$ offerts", Emoji: "🏦", Color: "#ff2e88", Filled: true, Price: SpotPrice},
-		{Brand: "LS Customs", Title: "Tune ta caisse, -20% ce mois-ci", Emoji: "🔧", Color: "#ffd23f", Filled: true, Price: SpotPrice},
+		{Brand: "Sprunk", Title: "La boisson n°1 de Los Santos 🥤", Emoji: "🥤", Color: "#1fe0ff"},
+		{Brand: "Maze Bank", Title: "Ouvre un compte, +5000$ offerts", Emoji: "🏦", Color: "#ff2e88"},
+		{Brand: "LS Customs", Title: "Tune ta caisse, -20% ce mois-ci", Emoji: "🔧", Color: "#ffd23f"},
+		{Brand: "Ammu-Nation", Title: "Soldes sur tout l'arsenal 💥", Emoji: "🔫", Color: "#ff6b35"},
+		{Brand: "eCola", Title: "Plus de bulles, plus de fun", Emoji: "🥤", Color: "#e63946"},
+		{Brand: "Vinewood Auto", Title: "La supercar de tes rêves", Emoji: "🏎️", Color: "#a06bff"},
+		{Brand: "Lifeinvader", Title: "Connecte-toi à Los Santos", Emoji: "📱", Color: "#2ecc71"},
+		{Brand: "Bean Machine", Title: "Ton café offert ce matin ☕", Emoji: "☕", Color: "#c08552"},
 	}
 	slots := make([]*AdSlot, NumSlots)
 	for i := 0; i < NumSlots; i++ {
 		if i < len(demo) {
 			slots[i] = demo[i]
+			slots[i].Filled = true
 		} else {
 			slots[i] = &AdSlot{}
 		}

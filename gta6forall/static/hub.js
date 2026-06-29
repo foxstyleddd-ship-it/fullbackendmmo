@@ -66,8 +66,6 @@ async function refreshAds() {
   let data;
   try { data = await api("/api/ads"); } catch { return; }
   spotPrice = data.spotPrice;
-  $("spot-price").textContent = euro(spotPrice) + " €";
-  $("place-submit").textContent = `Payer ${euro(spotPrice)} € & afficher ma pub`;
   renderSpots(data.slots);
 }
 
