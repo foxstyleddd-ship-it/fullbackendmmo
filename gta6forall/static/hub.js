@@ -8,7 +8,6 @@ let currentAd = null;
 let knownGames = null;
 let spotPrice = 25_000_000;
 
-// --- API -------------------------------------------------------------------
 async function api(path, body) {
   const res = await fetch(path, {
     method: body ? "POST" : "GET",
@@ -20,11 +19,29 @@ async function api(path, body) {
   return data;
 }
 
-// --- État global -----------------------------------------------------------
+// --- garde d'authentification ---------------------------------------------
+async function requireAuth() {
+  try { me = await api("/api/me"); }
+  catch { location.href = "/"; return false; } // pas connecté → page d'accueil
+  renderAccount();
+  return true;
+}
+
+function renderAccount() {
+  $("auth-mini").innerHTML = `<span class="neon-cyan">${esc(me.username)}</span> · ${me.weight} poids <button class="btn btn-ghost" id="logout-btn">Quitter</button>`;
+  $("logout-btn").onclick = async () => { await api("/api/logout", {}); location.href = "/"; };
+  $("my-weight").textContent = me.weight;
+  $("my-ads").textContent = me.adsWatched;
+  $("my-chance").textContent = me.winChance.toFixed(2) + "%";
+  $("my-wins").textContent = me.wins;
+  $("ref-link").value = `${location.origin}/?ref=${me.refCode}`;
+}
+async function refreshMe() { try { me = await api("/api/me"); renderAccount(); } catch {} }
+
+// --- état global -----------------------------------------------------------
 async function refreshState() {
   let st;
   try { st = await api("/api/state"); } catch { return; }
-
   $("pot").textContent = euro(st.pot);
   $("fee").textContent = euro(st.fee) + " €";
   $("pot-pct").textContent = st.progress.toFixed(1) + "%";
@@ -35,18 +52,16 @@ async function refreshState() {
   if (knownGames !== null && st.gamesGiven > knownGames && st.winners[0]) showDrop(st.winners[0].username);
   knownGames = st.gamesGiven;
 
-  const wl = $("winners");
-  wl.innerHTML = st.winners.length === 0
+  $("winners").innerHTML = st.winners.length === 0
     ? '<li class="muted">Personne n\'a encore gagné… sois le premier !</li>'
     : st.winners.map((w) => `<li><span>🎮 <b>${esc(w.username)}</b> a gagné GTA6 #${w.gameNo}</span><span class="win-time">${timeAgo(w.at)}</span></li>`).join("");
 
-  const lb = $("leaderboard");
-  lb.innerHTML = st.leaderboard.length === 0
+  $("leaderboard").innerHTML = st.leaderboard.length === 0
     ? '<li class="muted">Aucun joueur pour le moment.</li>'
     : st.leaderboard.map((r) => `<li><span>${esc(r.username)}</span><span>${r.weight} poids · ${r.wins} 🎮</span></li>`).join("");
 }
 
-// --- Hub de spots ----------------------------------------------------------
+// --- hub de spots ----------------------------------------------------------
 async function refreshAds() {
   let data;
   try { data = await api("/api/ads"); } catch { return; }
@@ -71,83 +86,21 @@ function renderSpots(slots) {
       </div>`;
     }
     return `<div class="spot empty" data-place="${s.id}">
-      <div class="plus">＋</div>
-      <div class="lbl">Votre pub ici</div>
-      <div class="sub">Réserver ce spot</div>
+      <div class="plus">＋</div><div class="lbl">Votre pub ici</div><div class="sub">Réserver ce spot</div>
     </div>`;
   }).join("");
-
-  grid.querySelectorAll("[data-watch]").forEach((el) => el.onclick = onWatchClick);
+  grid.querySelectorAll("[data-watch]").forEach((el) => el.onclick = startAd);
   grid.querySelectorAll("[data-place]").forEach((el) => el.onclick = () => openPlace(+el.dataset.place));
 }
 
-// --- Compte ----------------------------------------------------------------
-async function refreshMe() {
-  try { me = await api("/api/me"); } catch { me = null; }
-  renderAuth();
-}
-
-function renderAuth() {
-  const mini = $("auth-mini");
-  if (me) {
-    mini.innerHTML = `<span class="neon-cyan">${esc(me.username)}</span> · ${me.weight} poids <button class="btn btn-ghost" id="logout-btn">Quitter</button>`;
-    $("logout-btn").onclick = logout;
-    $("dash").classList.remove("hidden");
-    fillMe();
-  } else {
-    mini.innerHTML = `<button class="btn btn-ghost" id="open-auth">Connexion</button>`;
-    $("open-auth").onclick = () => openAuth("login");
-    $("dash").classList.add("hidden");
-  }
-}
-
-function fillMe() {
-  if (!me) return;
-  $("my-weight").textContent = me.weight;
-  $("my-ads").textContent = me.adsWatched;
-  $("my-chance").textContent = me.winChance.toFixed(2) + "%";
-  $("my-wins").textContent = me.wins;
-  $("ref-link").value = `${location.origin}/?ref=${me.refCode}`;
-}
-
-// --- Modales (helpers) -----------------------------------------------------
+// --- modales (helpers) -----------------------------------------------------
 function open(id) { $(id).classList.remove("hidden"); }
 function close(id) { $(id).classList.add("hidden"); }
 document.querySelectorAll("[data-close]").forEach((b) => b.onclick = () => close(b.dataset.close));
 document.querySelectorAll(".modal").forEach((m) => m.addEventListener("click", (e) => { if (e.target === m) m.classList.add("hidden"); }));
 
-// --- Auth ------------------------------------------------------------------
-let authTab = "register";
-function openAuth(tab) {
-  authTab = tab;
-  document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === tab));
-  $("auth-submit").textContent = tab === "register" ? "Créer mon compte" : "Se connecter";
-  $("f-ref").classList.toggle("hidden", tab === "login");
-  $("auth-err").textContent = "";
-  open("auth-modal");
-  $("f-username").focus();
-}
-document.querySelectorAll(".tab").forEach((t) => t.onclick = () => openAuth(t.dataset.tab));
-
-$("auth-submit").onclick = async () => {
-  try {
-    me = await api(authTab === "register" ? "/api/register" : "/api/login", {
-      username: $("f-username").value.trim(),
-      password: $("f-password").value,
-      refCode: $("f-ref").value.trim(),
-    });
-    close("auth-modal");
-    renderAuth();
-    refreshState();
-  } catch (e) { $("auth-err").textContent = e.message; }
-};
-
-async function logout() { await api("/api/logout", {}); me = null; renderAuth(); }
-
-// --- Flow pub (regarder) ---------------------------------------------------
-function onWatchClick() { me ? startAd() : openAuth("register"); }
-$("watch-btn").onclick = onWatchClick;
-
+// --- flow pub (regarder) ---------------------------------------------------
+$("watch-btn").onclick = startAd;
 let adTimer = null;
 async function startAd() {
   setMsg("", true);
@@ -190,7 +143,7 @@ $("ad-claim").onclick = async () => {
   } catch (e) { $("ad-err").textContent = e.message; }
 };
 
-// --- Flow marque (réserver un spot) ----------------------------------------
+// --- flow marque (réserver un spot) ----------------------------------------
 let placeSlot = -1;
 function openPlace(slot) {
   placeSlot = (typeof slot === "number" && slot >= 0) ? slot : -1;
@@ -224,7 +177,6 @@ $("copy-ref").onclick = () => {
   $("copy-ref").textContent = "Copié ✓";
   setTimeout(() => ($("copy-ref").textContent = "Copier"), 1500);
 };
-
 function setMsg(msg, ok) { const el = $("watch-msg"); el.textContent = msg; el.className = "watch-msg " + (ok ? "ok" : "bad"); }
 function showDrop(u) {
   const t = $("drop-toast");
@@ -243,9 +195,8 @@ function timeAgo(iso) {
 }
 
 // --- init ------------------------------------------------------------------
-(function init() {
-  const ref = new URLSearchParams(location.search).get("ref");
-  if (ref) $("f-ref").value = ref;
-  refreshMe(); refreshState(); refreshAds();
+(async function init() {
+  if (!(await requireAuth())) return; // redirige si pas connecté
+  refreshState(); refreshAds();
   setInterval(() => { refreshState(); refreshAds(); }, 4000);
 })();

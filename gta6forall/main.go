@@ -24,6 +24,7 @@ func main() {
 	sub, _ := fs.Sub(staticFS, "static")
 	mux := http.NewServeMux()
 	mux.Handle("/", noCache(http.FileServer(http.FS(sub))))
+	mux.HandleFunc("/hub", servePage("hub.html")) // page dédiée au hub de spots
 
 	mux.HandleFunc("/api/register", handleRegister)
 	mux.HandleFunc("/api/login", handleLogin)
@@ -46,6 +47,20 @@ func noCache(h http.Handler) http.Handler {
 		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 		h.ServeHTTP(w, r)
 	})
+}
+
+// servePage rend une page HTML embarquée à une URL propre (ex: /hub).
+func servePage(name string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		data, err := staticFS.ReadFile("static/" + name)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write(data)
+	}
 }
 
 func env(k, def string) string {

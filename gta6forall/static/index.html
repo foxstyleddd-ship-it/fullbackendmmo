@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<title>GTA6forall — Le hub de pubs qui t'offre GTA6 🎮</title>
-<meta name="description" content="Un hub de spots publicitaires : les marques louent un emplacement, leur argent remplit la cagnotte, et le site offre des GTA6 au hasard à ceux qui regardent." />
+<title>GTA6forall — Regarde des pubs, gagne GTA6 gratuitement 🎮</title>
+<meta name="description" content="Les pubs que tu regardes remplissent une cagnotte commune. Dès qu'elle atteint le prix d'un GTA6, le site l'achète et l'offre au hasard. Plus tu regardes, plus tu as de chances." />
 <link rel="stylesheet" href="style.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&display=swap" rel="stylesheet">
@@ -13,90 +13,62 @@
 <div class="bg-grid"></div>
 <div class="bg-glow"></div>
 
-<!-- ===================== HUB (1 écran) ===================== -->
-<section class="hub">
-  <header class="topbar">
-    <div class="logo">GTA<span>6</span>forall</div>
-    <div class="top-right">
-      <span class="demo-pill">⚡ DÉMO</span>
-      <div id="auth-mini"></div>
-    </div>
-  </header>
-
-  <!-- bandeau cagnotte -->
-  <div class="potstrip">
-    <div class="potstrip-main">
-      <div class="pot-label">Cagnotte commune · prochain <b>GTA6</b></div>
-      <div class="pot-amount"><span id="pot">0,00</span> € <span class="pot-target">/ 69,99 €</span></div>
-    </div>
-    <div class="potstrip-bar">
-      <div class="bar"><div id="bar-fill" class="bar-fill"></div></div>
-      <div class="potstrip-foot">
-        <span id="pot-pct">0%</span> ·
-        <span id="games-given">0 GTA6 offerts</span> ·
-        <span id="total-users">0</span> joueurs ·
-        <span id="fee">0,00 €</span> de marge (5%)
-      </div>
-    </div>
+<header class="topbar landing-top">
+  <div class="logo">GTA<span>6</span>forall</div>
+  <div class="top-right">
+    <span class="demo-pill">⚡ DÉMO</span>
+    <div id="auth-mini"></div>
   </div>
+</header>
 
-  <!-- grille de spots -->
-  <div class="spots" id="spots"></div>
+<main class="landing">
+  <!-- HERO -->
+  <section class="hero">
+    <div class="badge">🎮 Le site qui offre des GTA6 à ses joueurs</div>
+    <h1>Regarde des pubs.<br/><span class="neon-pink">Gagne GTA6.</span> <span class="neon-cyan">Gratuitement.</span></h1>
+    <p class="sub">Chaque pub que tu regardes remplit une <b>cagnotte commune</b>. Dès qu'elle atteint le prix d'un GTA6, le site l'achète et l'offre <b>au hasard</b> à un joueur. Plus tu regardes, plus ton compte a de poids… et plus tu as de chances de gagner.</p>
 
-  <!-- actions -->
-  <div class="hub-actions">
-    <button class="btn btn-primary" id="watch-btn">🍿 Regarder & gagner des chances</button>
-    <button class="btn btn-ghost" id="place-btn">📢 Mettre ma pub ici</button>
-  </div>
-  <div id="watch-msg" class="watch-msg"></div>
+    <div class="cta-row">
+      <button class="btn btn-primary big" id="cta-main">Créer mon compte gratuit →</button>
+      <button class="btn btn-ghost big" id="cta-login">J'ai déjà un compte</button>
+    </div>
 
-  <a class="scroll-hint" href="#more">Mon compte, gagnants & classement ↓</a>
-</section>
-
-<!-- ===================== PLUS BAS (scroll) ===================== -->
-<main id="more">
-  <section id="dash" class="dash hidden">
-    <div class="card stats-card">
-      <h3>👤 Mon compte</h3>
-      <div class="stats-line">
-        <div class="stat"><b id="my-weight">0</b><span>poids</span></div>
-        <div class="stat"><b id="my-ads">0</b><span>pubs vues</span></div>
-        <div class="stat"><b id="my-chance" class="neon-cyan">0%</b><span>chance au drop</span></div>
-        <div class="stat"><b id="my-wins" class="neon-pink">0</b><span>GTA6 gagnés</span></div>
-      </div>
-      <div class="ref-box">
-        <span>Ton lien de parrainage (+5 poids par pote inscrit, +2 pour lui) :</span>
-        <div class="ref-line"><input id="ref-link" readonly /><button class="btn btn-ghost" id="copy-ref">Copier</button></div>
+    <!-- teaser live (preuve sociale) -->
+    <div class="teaser">
+      <div class="teaser-bar">
+        <div class="teaser-head">
+          <span>Cagnotte en cours · prochain <b>GTA6</b></span>
+          <span id="t-games" class="neon-cyan">0 GTA6 offerts</span>
+        </div>
+        <div class="bar"><div id="t-fill" class="bar-fill"></div></div>
+        <div class="teaser-foot"><span id="t-pot">0,00 €</span> / 69,99 € · <span id="t-users">0</span> joueurs en jeu</div>
       </div>
     </div>
   </section>
 
-  <section class="feeds">
-    <div class="card feed-card">
-      <h3>🏆 Derniers gagnants</h3>
-      <ul id="winners" class="winners"><li class="muted">Personne n'a encore gagné… sois le premier !</li></ul>
-    </div>
-    <div class="card feed-card">
-      <h3>📊 Classement (poids)</h3>
-      <ol id="leaderboard" class="leaderboard"><li class="muted">Aucun joueur pour le moment.</li></ol>
-    </div>
-  </section>
-
+  <!-- COMMENT ÇA MARCHE -->
   <section class="how">
-    <h2>Comment ça marche</h2>
+    <h2>Le principe, en 4 étapes</h2>
     <div class="steps">
-      <div class="step"><div class="num">1</div><h4>Les marques louent un spot</h4><p>Leur paiement remplit la cagnotte commune.</p></div>
-      <div class="step"><div class="num">2</div><h4>Tu regardes les pubs</h4><p>Chaque pub vérifiée = +1 poids (ticket de tirage).</p></div>
-      <div class="step"><div class="num">3</div><h4>Cagnotte pleine → GTA6 acheté</h4><p>Le site achète automatiquement un jeu.</p></div>
-      <div class="step"><div class="num">4</div><h4>Tirage au sort pondéré</h4><p>Plus ton poids est élevé, plus tu as de chances.</p></div>
+      <div class="step"><div class="num">1</div><h4>Tu crées un compte</h4><p>Gratuit, en 10 secondes. Juste un pseudo et un mot de passe.</p></div>
+      <div class="step"><div class="num">2</div><h4>Tu regardes des pubs</h4><p>Chaque pub regardée = <b>+1 poids</b> sur ton compte, et remplit la cagnotte.</p></div>
+      <div class="step"><div class="num">3</div><h4>Le site achète un GTA6</h4><p>Cagnotte pleine → un jeu est acheté automatiquement.</p></div>
+      <div class="step"><div class="num">4</div><h4>Tirage au sort</h4><p>Un joueur gagne, au hasard, proportionnellement à son poids. 🎁</p></div>
     </div>
-    <p class="disclaimer">⚠️ Projet démo : économie simulée (pubs, monnaie et spots fictifs, aucun vrai jeu distribué). En vrai, les spots se vendent en direct ou via un ad server (Kevel / Google Ad Manager), et le « regarder pour gagner » passe par une régie rewarded/offerwall (AdGate, Bitlabs…). AdSense interdit ce modèle.</p>
   </section>
 
+  <!-- GAGNANTS (FOMO) -->
+  <section class="winners-teaser">
+    <h2>🏆 Ils ont déjà gagné</h2>
+    <ul id="winners" class="winners"><li class="muted">Bientôt les premiers gagnants… rejoins-les !</li></ul>
+    <button class="btn btn-primary big" id="cta-bottom">Je tente ma chance →</button>
+  </section>
+
+  <p class="disclaimer">⚠️ Projet démo : l'économie est simulée (pubs, monnaie et lots fictifs, aucun vrai jeu n'est distribué). En vrai, le « regarder pour gagner » passe par une régie rewarded/offerwall (AdGate, Bitlabs…) — AdSense interdit ce modèle — et les marques financent la cagnotte en louant des spots.</p>
   <footer>GTA6forall — projet fun vibecodé. Non affilié à Rockstar Games.</footer>
 </main>
 
-<!-- ===================== MODALES ===================== -->
+<!-- MODALE AUTH -->
 <div id="auth-modal" class="modal hidden">
   <div class="modal-box">
     <button class="modal-close" data-close="auth-modal">✕</button>
@@ -112,42 +84,6 @@
   </div>
 </div>
 
-<div id="ad-modal" class="modal hidden">
-  <div class="modal-box ad-box">
-    <div class="ad-screen">
-      <div class="ad-sponsor" id="ad-sponsor">Sponsor</div>
-      <div class="ad-play">▶</div>
-      <div class="ad-timer" id="ad-timer">5</div>
-      <div class="ad-tag">PUBLICITÉ</div>
-    </div>
-    <div id="ad-captcha" class="ad-captcha hidden">
-      <label id="ad-captcha-q">3 + 4 = ?</label>
-      <input id="ad-captcha-a" inputmode="numeric" placeholder="Réponse" />
-    </div>
-    <button class="btn btn-primary full big" id="ad-claim" disabled>Patiente…</button>
-    <div id="ad-err" class="form-err"></div>
-  </div>
-</div>
-
-<div id="place-modal" class="modal hidden">
-  <div class="modal-box">
-    <button class="modal-close" data-close="place-modal">✕</button>
-    <h3 class="modal-title">📢 Réserver un spot pub</h3>
-    <p class="muted">Ta pub s'affiche dans le hub. Ton paiement (<b id="spot-price">25,00 €</b>) remplit la cagnotte GTA6 — moins 5% de marge.</p>
-    <input id="p-brand" placeholder="Nom de la marque" maxlength="22" />
-    <input id="p-title" placeholder="Ton message (ex: -20% ce week-end !)" maxlength="60" />
-    <div class="place-row">
-      <input id="p-emoji" placeholder="Emoji (ex: 🔥)" maxlength="8" class="emoji-in" />
-      <label class="color-pick">Couleur <input id="p-color" type="color" value="#7a1fff" /></label>
-    </div>
-    <input id="p-link" placeholder="Lien (optionnel, https://…)" maxlength="200" />
-    <div id="place-err" class="form-err"></div>
-    <button class="btn btn-primary full big" id="place-submit">Payer 25 € & afficher ma pub</button>
-  </div>
-</div>
-
-<div id="drop-toast" class="drop-toast hidden"></div>
-
-<script src="app.js"></script>
+<script src="landing.js"></script>
 </body>
 </html>
