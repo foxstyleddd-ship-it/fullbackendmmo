@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>GTA6forall — Admin</title>
+<link rel="stylesheet" href="style.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-glow"></div>
+
+<header class="topbar landing-top">
+  <a class="logo" href="/">GTA<span>6</span>forall</a>
+  <span class="demo-pill">🛠️ ADMIN</span>
+</header>
+
+<main class="landing" style="max-width:720px">
+  <!-- connexion admin -->
+  <section id="admin-login" class="card" style="margin-top:30px">
+    <h3>🔐 Accès admin</h3>
+    <p class="muted">Entre le token admin (variable d'environnement <code>ADMIN_TOKEN</code> côté serveur).</p>
+    <input id="admin-token" type="password" placeholder="Token admin" />
+    <div id="admin-err" class="form-err"></div>
+    <button class="btn btn-primary full big" id="admin-enter">Entrer</button>
+  </section>
+
+  <!-- gestion des spots -->
+  <section id="admin-panel" class="hidden" style="margin-top:24px;display:flex;flex-direction:column;gap:16px">
+    <div class="card">
+      <h3>📢 Emplacements publicitaires</h3>
+      <p class="muted">Saisis les deals vendus aux marques. Le prix payé (en €) finance la cagnotte GTA6 (moins 5% de marge). Laisse le prix à 0 pour un placement gratuit/maison.</p>
+      <div id="slots-admin" class="slots-admin"></div>
+    </div>
+  </section>
+</main>
+
+<script src="admin.js"></script>
+</body>
+</html>

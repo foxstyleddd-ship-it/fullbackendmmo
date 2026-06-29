@@ -70,6 +70,7 @@ type snapshot struct {
 	GamesGiven int              `json:"gamesGiven"`
 	Winners    []Winner         `json:"winners"`
 	Slots      []*AdSlot        `json:"slots"`
+	Chat       []ChatMsg        `json:"chat"`
 }
 
 type Store struct {
@@ -83,7 +84,10 @@ type Store struct {
 	fee        int64
 	gamesGiven int
 	winners    []Winner
-	slots      []*AdSlot // emplacements pub du hub (loués par les marques)
+	slots      []*AdSlot // emplacements pub du hub (gérés en admin)
+	chat       []ChatMsg
+	chatLast   map[string]time.Time // anti-spam tchat : dernier message par user
+	rewardTxns map[string]bool      // idempotence des postbacks de régie
 	path       string
 }
 
@@ -93,8 +97,10 @@ func NewStore(path string) *Store {
 		byName:   map[string]string{},
 		byRef:    map[string]string{},
 		sessions: map[string]string{},
-		pending:  map[string]*pendingAd{},
-		path:     path,
+		pending:    map[string]*pendingAd{},
+		chatLast:   map[string]time.Time{},
+		rewardTxns: map[string]bool{},
+		path:       path,
 	}
 	s.load()
 	if len(s.slots) == 0 {
@@ -146,7 +152,7 @@ func (s *Store) load() {
 	if snap.Users != nil {
 		s.users = snap.Users
 	}
-	s.pot, s.fee, s.gamesGiven, s.winners, s.slots = snap.Pot, snap.Fee, snap.GamesGiven, snap.Winners, snap.Slots
+	s.pot, s.fee, s.gamesGiven, s.winners, s.slots, s.chat = snap.Pot, snap.Fee, snap.GamesGiven, snap.Winners, snap.Slots, snap.Chat
 	for id, u := range s.users {
 		s.byName[strings.ToLower(u.Username)] = id
 		if u.RefCode != "" {
@@ -157,7 +163,7 @@ func (s *Store) load() {
 
 // persist must be called with the lock held.
 func (s *Store) persist() {
-	snap := snapshot{Users: s.users, Pot: s.pot, Fee: s.fee, GamesGiven: s.gamesGiven, Winners: s.winners, Slots: s.slots}
+	snap := snapshot{Users: s.users, Pot: s.pot, Fee: s.fee, GamesGiven: s.gamesGiven, Winners: s.winners, Slots: s.slots, Chat: s.chat}
 	data, err := json.MarshalIndent(snap, "", "  ")
 	if err != nil {
 		return

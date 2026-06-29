@@ -12,7 +12,33 @@ go run .
 # → http://localhost:8080
 ```
 
-Variables d'environnement optionnelles : `PORT` (def. `8080`), `DATA_PATH` (def. `data.json`).
+### Variables d'environnement
+
+| Variable | Rôle | Défaut |
+|---|---|---|
+| `PORT` | Port HTTP | `8080` |
+| `DATA_PATH` | Fichier de persistance JSON | `data.json` |
+| `ADMIN_TOKEN` | Active la page `/admin` et protège ses appels. **Vide = admin désactivé.** | — |
+| `OFFERWALL_URL` | URL de l'offerwall d'une vraie régie (AdGate, Bitlabs…). Affiche le bouton « Offres partenaires ». Vide = bouton masqué. | — |
+| `POSTBACK_SECRET` | Secret HMAC pour vérifier le postback serveur-à-serveur de la régie. **Vide = postback refusé.** | — |
+| `CONTACT_EMAIL` | E-mail affiché pour réserver un spot (info uniquement). | `contact@gta6forall.com` |
+
+### Pages
+
+- `/` — landing qui explique le principe (visiteurs non connectés).
+- `/hub` — hub de spots + tchat + compte (connectés ; redirige vers `/` sinon).
+- `/admin` — gestion des emplacements (token `ADMIN_TOKEN`).
+
+### Brancher une vraie régie « rewarded / offerwall »
+
+Le mécanisme réel est déjà câblé (il ne manque qu'un compte éditeur validé) :
+
+1. Crée un compte chez une régie qui autorise l'incentivé : **AdGate Media, Bitlabs, AdGem, Lootably…** (jamais AdSense, qui l'interdit).
+2. Mets son URL d'offerwall dans `OFFERWALL_URL` (on y ajoute `subId=<idJoueur>` automatiquement).
+3. Configure son **postback serveur-à-serveur** vers :
+   `GET /api/reward/postback?userId=<subId>&amount=<micro€>&txnId=<id>&sig=<hmac>`
+   avec `sig = HMAC_SHA256(POSTBACK_SECRET, "userId:amount:txnId")`.
+4. Le joueur complète une offre → la régie appelle le postback → la cagnotte monte et le joueur gagne du poids. Idempotent sur `txnId`.
 
 Tests :
 
@@ -33,6 +59,9 @@ go test ./...
 | **5 % de bénéfices** | Une commission de 5 % est prélevée à chaque récompense et affichée. |
 | **Parrainage** | Lien `?ref=CODE` : +5 poids pour le parrain, +2 pour le filleul (boucle virale TikTok). |
 | **Feed gagnants + classement** | Derniers GTA6 offerts et top 10 des poids, en direct. |
+| **Régie réelle (rewarded/offerwall)** | Bouton « Offres partenaires » + **postback HMAC** serveur-à-serveur idempotent (voir ci-dessous). |
+| **Spots gérés en admin** | Plus de paiement self-service : le owner saisit les deals vendus aux marques dans `/admin`, le revenu finance la cagnotte. |
+| **Tchat communautaire auto-modéré** | Réservé aux connectés. Anti-liens/emails/téléphones, filtre slurs (rejet) + insultes (masquées), anti-flood, cooldown 3 s, anti-doublon. |
 
 ## Économie (volontairement « démo »)
 

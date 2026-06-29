@@ -157,6 +157,33 @@ footer{text-align:center;color:var(--muted);font-size:13px;padding:20px 0}
 .drop-toast{position:fixed;top:74px;left:50%;transform:translateX(-50%);z-index:80;background:linear-gradient(90deg,var(--pink),var(--purple));color:#fff;font-weight:900;padding:15px 24px;border-radius:15px;box-shadow:0 20px 60px rgba(255,46,136,.6);font-size:16px;text-align:center;max-width:90vw;animation:pop .5s ease}
 @keyframes pop{from{transform:translateX(-50%) scale(.7);opacity:0}to{transform:translateX(-50%) scale(1);opacity:1}}
 
+/* boutons supplémentaires */
+.btn-cyan{background:linear-gradient(90deg,var(--cyan),#1f8bff);color:#04121a;box-shadow:0 12px 30px rgba(31,224,255,.35)}
+.btn-cyan:hover{filter:brightness(1.08)}
+
+/* ===================== TCHAT ===================== */
+.chat-card .mod-pill{font-size:11px;font-weight:800;color:var(--cyan);background:rgba(31,224,255,.1);border:1px solid rgba(31,224,255,.3);padding:3px 9px;border-radius:99px;vertical-align:middle;margin-left:6px}
+.chat-box{height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:9px;padding:6px 4px;margin-bottom:12px}
+.chat-msg{display:flex;flex-direction:column;gap:1px;animation:slideIn .3s ease}
+.chat-user{font-weight:800;font-size:12.5px;color:var(--cyan)}
+.chat-text{font-size:14.5px;line-height:1.35;word-break:break-word}
+.chat-form{display:flex;gap:8px}
+.chat-form input{flex:1;min-width:0;background:rgba(0,0,0,.4);border:1px solid var(--line);color:var(--text);border-radius:12px;padding:13px;font-family:inherit;font-size:15px}
+.chat-form .btn{flex-shrink:0}
+
+/* ===================== ADMIN ===================== */
+code{background:rgba(255,255,255,.1);padding:2px 7px;border-radius:6px;font-size:13px}
+#admin-login input{width:100%;background:rgba(0,0,0,.4);border:1px solid var(--line);color:var(--text);border-radius:12px;padding:13px;font-family:inherit;font-size:15px;margin:12px 0}
+.slots-admin{display:flex;flex-direction:column;gap:14px;margin-top:14px}
+.slot-edit{background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.slot-edit-head{font-weight:800;font-size:14px}
+.filled-tag{font-size:13px;font-weight:800;margin-left:6px}
+.slot-edit input:not([type=color]){background:rgba(0,0,0,.4);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:11px;font-family:inherit;font-size:14px;width:100%}
+.slot-edit-row{display:flex;gap:10px;align-items:center}
+.slot-edit-row .f-emoji{max-width:90px}
+.slot-edit-row .f-price{max-width:120px}
+.slot-edit-actions{display:flex;gap:10px}
+
 .hidden{display:none!important}
 
 /* ===================== RESPONSIVE ===================== */

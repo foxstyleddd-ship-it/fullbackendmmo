@@ -34,7 +34,12 @@ func main() {
 	mux.HandleFunc("/api/ad/start", handleAdStart)
 	mux.HandleFunc("/api/ad/complete", handleAdComplete)
 	mux.HandleFunc("/api/ads", handleAds)
-	mux.HandleFunc("/api/ads/place", handleAdsPlace)
+	mux.HandleFunc("/api/ads/offerwall", handleOfferwall)
+	mux.HandleFunc("/api/reward/postback", handlePostback)
+	mux.HandleFunc("/api/chat", handleChat)
+	mux.HandleFunc("/api/admin/slot", handleAdminSlot)
+	mux.HandleFunc("/api/admin/slot/clear", handleAdminClear)
+	mux.HandleFunc("/admin", servePage("admin.html"))
 
 	log.Printf("🎮 GTA6forall en écoute sur http://localhost%s", addr)
 	log.Fatal(http.ListenAndServe(addr, mux))
@@ -237,29 +242,133 @@ func handleAds(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-type placeReq struct {
-	Slot  int    `json:"slot"`
+// --- offerwall / régie réelle ---------------------------------------------
+
+func handleOfferwall(w http.ResponseWriter, r *http.Request) {
+	u := currentUser(r)
+	if u == nil {
+		writeErr(w, 401, "non connecté")
+		return
+	}
+	url := offerwallURL(u.ID)
+	writeJSON(w, 200, map[string]any{"enabled": url != "", "url": url})
+}
+
+// handlePostback reçoit le callback serveur-à-serveur signé de la régie.
+func handlePostback(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	userID, amount, txn, signature := q.Get("userId"), q.Get("amount"), q.Get("txnId"), q.Get("sig")
+	if !validSig(userID, amount, txn, signature) {
+		writeErr(w, 403, "signature invalide")
+		return
+	}
+	micro, err := strconv.ParseInt(amount, 10, 64)
+	if err != nil {
+		writeErr(w, 400, "montant invalide")
+		return
+	}
+	if _, err := store.CreditReward(userID, micro, txn); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	w.Write([]byte("OK")) // la plupart des régies attendent "OK" en réponse
+}
+
+// --- tchat communautaire ---------------------------------------------------
+
+func handleChat(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		writeJSON(w, 200, map[string]any{"messages": store.Chat()})
+		return
+	}
+	if r.Method != http.MethodPost {
+		writeErr(w, 405, "méthode non autorisée")
+		return
+	}
+	u := currentUser(r)
+	if u == nil {
+		writeErr(w, 401, "connecte-toi pour discuter")
+		return
+	}
+	var req struct {
+		Text string `json:"text"`
+	}
+	if decode(r, &req) != nil {
+		writeErr(w, 400, "requête invalide")
+		return
+	}
+	msg, err := store.PostChat(u, req.Text)
+	if err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	writeJSON(w, 200, msg)
+}
+
+// --- admin -----------------------------------------------------------------
+
+func requireAdmin(w http.ResponseWriter, r *http.Request) bool {
+	tok := os.Getenv("ADMIN_TOKEN")
+	if tok == "" {
+		writeErr(w, 503, "admin non configuré (définis ADMIN_TOKEN)")
+		return false
+	}
+	if r.Header.Get("X-Admin-Token") != tok {
+		writeErr(w, 401, "token admin invalide")
+		return false
+	}
+	return true
+}
+
+type adminSlotReq struct {
+	ID    int    `json:"id"`
 	Brand string `json:"brand"`
 	Title string `json:"title"`
 	Emoji string `json:"emoji"`
 	Color string `json:"color"`
 	Link  string `json:"link"`
+	Price int64  `json:"price"` // en micro-euros ; >0 alimente la cagnotte
 }
 
-func handleAdsPlace(w http.ResponseWriter, r *http.Request) {
+func handleAdminSlot(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeErr(w, 405, "méthode non autorisée")
 		return
 	}
-	var req placeReq
+	if !requireAdmin(w, r) {
+		return
+	}
+	var req adminSlotReq
 	if decode(r, &req) != nil {
 		writeErr(w, 400, "requête invalide")
 		return
 	}
-	res, err := store.PlaceAd(req.Slot, req.Brand, req.Title, req.Emoji, req.Color, req.Link)
+	res, err := store.AdminUpsertSlot(req.ID, req.Brand, req.Title, req.Emoji, req.Color, req.Link, req.Price)
 	if err != nil {
 		writeErr(w, 400, err.Error())
 		return
 	}
 	writeJSON(w, 200, res)
+}
+
+func handleAdminClear(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeErr(w, 405, "méthode non autorisée")
+		return
+	}
+	if !requireAdmin(w, r) {
+		return
+	}
+	var req struct {
+		ID int `json:"id"`
+	}
+	if decode(r, &req) != nil {
+		writeErr(w, 400, "requête invalide")
+		return
+	}
+	if err := store.AdminClearSlot(req.ID); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	writeJSON(w, 200, map[string]bool{"ok": true})
 }

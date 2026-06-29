@@ -81,35 +81,24 @@ type PlaceResult struct {
 	NewWins []Winner `json:"newWins"`
 }
 
-// PlaceAd loue un emplacement pour une marque. slotID < 0 = premier spot libre.
-// Le prix payé alimente la cagnotte (moins la commission de 5 %).
-func (s *Store) PlaceAd(slotID int, brand, title, emoji, color, link string) (*PlaceResult, error) {
+// AdminUpsertSlot (réservé à l'admin) crée/édite un spot vendu en direct à une
+// marque. Si priceMicro > 0, ce revenu alimente la cagnotte (moins 5 %) — c'est
+// ainsi que les deals signés financent les GTA6.
+func (s *Store) AdminUpsertSlot(id int, brand, title, emoji, color, link string, priceMicro int64) (*PlaceResult, error) {
 	brand = clip(brand, 22)
 	title = clip(title, 60)
 	if brand == "" || title == "" {
 		return nil, errors.New("nom de la marque et message requis")
 	}
+	if priceMicro < 0 {
+		priceMicro = 0
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
-	var slot *AdSlot
-	if slotID >= 0 && slotID < len(s.slots) {
-		slot = s.slots[slotID]
-		if slot.Filled {
-			return nil, errors.New("ce spot est déjà pris, choisis-en un autre")
-		}
-	} else {
-		for _, sl := range s.slots {
-			if !sl.Filled {
-				slot = sl
-				break
-			}
-		}
+	if id < 0 || id >= len(s.slots) {
+		return nil, errors.New("emplacement inconnu")
 	}
-	if slot == nil {
-		return nil, errors.New("plus aucun spot libre — le hub est complet 🎉")
-	}
-
+	slot := s.slots[id]
 	slot.Brand = brand
 	slot.Title = title
 	slot.Emoji = clip(emoji, 8)
@@ -118,16 +107,31 @@ func (s *Store) PlaceAd(slotID int, brand, title, emoji, color, link string) (*P
 	}
 	slot.Color = sanitizeColor(color)
 	slot.Link = clip(link, 200)
-	slot.Price = SpotPrice
+	slot.Price = priceMicro
 	slot.Filled = true
 
-	fee := int64(float64(SpotPrice) * FeeRate)
-	s.fee += fee
-	s.pot += SpotPrice - fee
-
-	res := &PlaceResult{Funded: SpotPrice - fee, NewWins: s.runDrops()}
+	var funded int64
+	if priceMicro > 0 {
+		fee := int64(float64(priceMicro) * FeeRate)
+		s.fee += fee
+		funded = priceMicro - fee
+		s.pot += funded
+	}
+	res := &PlaceResult{Funded: funded, NewWins: s.runDrops()}
 	s.persist()
 	cp := *slot
 	res.Slot = &cp
 	return res, nil
+}
+
+// AdminClearSlot (réservé à l'admin) libère un emplacement.
+func (s *Store) AdminClearSlot(id int) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if id < 0 || id >= len(s.slots) {
+		return errors.New("emplacement inconnu")
+	}
+	s.slots[id] = &AdSlot{ID: id}
+	s.persist()
+	return nil
 }

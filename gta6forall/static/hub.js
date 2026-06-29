@@ -85,12 +85,12 @@ function renderSpots(slots) {
         <div class="spot-cta">▶ Regarder · +1 poids</div>
       </div>`;
     }
-    return `<div class="spot empty" data-place="${s.id}">
-      <div class="plus">＋</div><div class="lbl">Votre pub ici</div><div class="sub">Réserver ce spot</div>
+    return `<div class="spot empty" data-advertise="1">
+      <div class="plus">＋</div><div class="lbl">Votre pub ici</div><div class="sub">À vendre · nous contacter</div>
     </div>`;
   }).join("");
   grid.querySelectorAll("[data-watch]").forEach((el) => el.onclick = startAd);
-  grid.querySelectorAll("[data-place]").forEach((el) => el.onclick = () => openPlace(+el.dataset.place));
+  grid.querySelectorAll("[data-advertise]").forEach((el) => el.onclick = () => open("advertise-modal"));
 }
 
 // --- modales (helpers) -----------------------------------------------------
@@ -143,32 +143,57 @@ $("ad-claim").onclick = async () => {
   } catch (e) { $("ad-err").textContent = e.message; }
 };
 
-// --- flow marque (réserver un spot) ----------------------------------------
-let placeSlot = -1;
-function openPlace(slot) {
-  placeSlot = (typeof slot === "number" && slot >= 0) ? slot : -1;
-  $("place-err").textContent = "";
-  open("place-modal");
-  $("p-brand").focus();
-}
-$("place-btn").onclick = () => openPlace(-1);
+// --- annoncer (contact, plus de paiement en self-service) ------------------
+$("advertise-btn").onclick = () => open("advertise-modal");
+(function setupContact() {
+  const email = $("contact-email").textContent.trim();
+  $("contact-link").href = `mailto:${email}?subject=${encodeURIComponent("Réserver un spot sur GTA6forall")}`;
+})();
 
-$("place-submit").onclick = async () => {
+// --- offres partenaires (vraie régie rewarded/offerwall) -------------------
+async function setupOfferwall() {
+  let ow;
+  try { ow = await api("/api/ads/offerwall"); } catch { return; }
+  if (ow.enabled && ow.url) {
+    const btn = $("offerwall-btn");
+    btn.classList.remove("hidden");
+    btn.onclick = () => window.open(ow.url, "_blank", "noopener");
+  }
+}
+
+// --- tchat communautaire ---------------------------------------------------
+let lastChatId = null;
+async function refreshChat() {
+  let data;
+  try { data = await api("/api/chat"); } catch { return; }
+  const box = $("chat-box");
+  const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
+  if (!data.messages.length) {
+    box.innerHTML = '<div class="muted">Sois le premier à écrire 👋</div>';
+    return;
+  }
+  const last = data.messages[data.messages.length - 1];
+  if (last.id === lastChatId) return; // rien de neuf
+  lastChatId = last.id;
+  box.innerHTML = data.messages.map((m) =>
+    `<div class="chat-msg"><span class="chat-user">${esc(m.user)}</span><span class="chat-text">${esc(m.text)}</span></div>`
+  ).join("");
+  if (atBottom) box.scrollTop = box.scrollHeight;
+}
+
+$("chat-form").onsubmit = async (e) => {
+  e.preventDefault();
+  const input = $("chat-input");
+  const text = input.value.trim();
+  if (!text) return;
+  $("chat-err").textContent = "";
   try {
-    const res = await api("/api/ads/place", {
-      slot: placeSlot,
-      brand: $("p-brand").value.trim(),
-      title: $("p-title").value.trim(),
-      emoji: $("p-emoji").value.trim(),
-      color: $("p-color").value,
-      link: $("p-link").value.trim(),
-    });
-    close("place-modal");
-    ["p-brand", "p-title", "p-emoji", "p-link"].forEach((id) => ($(id).value = ""));
-    setMsg(`📢 Pub affichée ! +${euro(res.funded)} € injectés dans la cagnotte 🎉`, true);
-    await refreshAds(); await refreshState();
-    if (res.newWins && res.newWins.length) showDrop(res.newWins[0].username);
-  } catch (e) { $("place-err").textContent = e.message; }
+    await api("/api/chat", { text });
+    input.value = "";
+    lastChatId = null; // force le re-render
+    await refreshChat();
+    $("chat-box").scrollTop = $("chat-box").scrollHeight;
+  } catch (e) { $("chat-err").textContent = e.message; }
 };
 
 // --- divers ----------------------------------------------------------------
@@ -197,6 +222,7 @@ function timeAgo(iso) {
 // --- init ------------------------------------------------------------------
 (async function init() {
   if (!(await requireAuth())) return; // redirige si pas connecté
-  refreshState(); refreshAds();
+  refreshState(); refreshAds(); refreshChat(); setupOfferwall();
   setInterval(() => { refreshState(); refreshAds(); }, 4000);
+  setInterval(refreshChat, 3000);
 })();

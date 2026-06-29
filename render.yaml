@@ -11,3 +11,12 @@ services:
     envVars:
       - key: GO_VERSION
         value: "1.22"
+      # Token d'accès à /admin (généré automatiquement, visible dans le dashboard Render).
+      - key: ADMIN_TOKEN
+        generateValue: true
+      # Secret HMAC pour le postback d'une vraie régie (rewarded/offerwall).
+      - key: POSTBACK_SECRET
+        generateValue: true
+      # À renseigner quand ton compte régie est validé (URL de l'offerwall).
+      - key: OFFERWALL_URL
+        sync: false
