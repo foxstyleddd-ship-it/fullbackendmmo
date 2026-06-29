@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GTA6forall — Gagne GTA6 gratuitement 🎮</title>
+<meta name="description" content="Regarde des pubs, remplis la cagnotte commune, et le site achète automatiquement des GTA6 qu'il distribue au hasard. Plus tu regardes, plus tu as de chances." />
+<link rel="stylesheet" href="style.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-glow"></div>
+
+<header class="topbar">
+  <div class="logo">GTA<span>6</span>forall</div>
+  <nav>
+    <span class="demo-pill">⚡ DÉMO</span>
+    <div id="auth-mini"></div>
+  </nav>
+</header>
+
+<main>
+  <!-- HERO / CAGNOTTE -->
+  <section class="hero">
+    <h1>Gagne <span class="neon-pink">GTA6</span> gratuitement.<br/>Il suffit de <span class="neon-cyan">regarder</span>.</h1>
+    <p class="sub">Chaque pub regardée remplit une cagnotte commune. Dès qu'elle atteint le prix d'un jeu, le site achète un <b>GTA6</b> et le donne au hasard — pondéré par ton poids. Plus tu regardes, plus tu gagnes de chances.</p>
+
+    <div class="pot-card">
+      <div class="pot-head">
+        <span>Cagnotte en cours</span>
+        <span id="games-given" class="games-given">0 GTA6 déjà offerts</span>
+      </div>
+      <div class="pot-amount"><span id="pot">0,00</span> € <span class="pot-target">/ 69,99 €</span></div>
+      <div class="bar"><div id="bar-fill" class="bar-fill"></div></div>
+      <div class="pot-foot">
+        <span id="pot-pct">0%</span> du prochain GTA6 ·
+        <span id="total-users">0</span> joueurs ·
+        <span id="fee">0,00 €</span> de bénéfices (5%)
+      </div>
+    </div>
+
+    <div class="cta-row">
+      <button class="btn btn-primary big" id="hero-cta">Créer mon compte & gagner →</button>
+      <a class="btn btn-ghost big" href="#how">Comment ça marche ?</a>
+    </div>
+  </section>
+
+  <!-- DASHBOARD (connecté) -->
+  <section id="dash" class="dash hidden">
+    <div class="dash-grid">
+      <div class="card watch-card">
+        <h3>🎬 Regarder une pub</h3>
+        <p class="muted">Regarde la pub en entier (anti-bot : durée mini + cooldown + captcha aléatoire). Tu gagnes <b>+1 poids</b> et tu remplis la cagnotte.</p>
+        <button class="btn btn-primary big full" id="watch-btn">Regarder une pub 🍿</button>
+        <div id="watch-msg" class="watch-msg"></div>
+      </div>
+
+      <div class="card stats-card">
+        <h3>👤 Mon compte</h3>
+        <div class="stat-row"><span>Mon poids (tickets)</span><b id="my-weight">0</b></div>
+        <div class="stat-row"><span>Pubs regardées</span><b id="my-ads">0</b></div>
+        <div class="stat-row"><span>Chance au prochain drop</span><b id="my-chance" class="neon-cyan">0%</b></div>
+        <div class="stat-row"><span>GTA6 gagnés</span><b id="my-wins" class="neon-pink">0</b></div>
+        <div class="ref-box">
+          <span>Ton lien de parrainage (+5 poids par pote, +2 pour lui) :</span>
+          <div class="ref-line"><input id="ref-link" readonly /><button class="btn btn-ghost" id="copy-ref">Copier</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEED + LEADERBOARD -->
+  <section class="feeds">
+    <div class="card feed-card">
+      <h3>🏆 Derniers gagnants</h3>
+      <ul id="winners" class="winners"><li class="muted">Personne n'a encore gagné… sois le premier !</li></ul>
+    </div>
+    <div class="card feed-card">
+      <h3>📊 Classement (poids)</h3>
+      <ol id="leaderboard" class="leaderboard"><li class="muted">Aucun joueur pour le moment.</li></ol>
+    </div>
+  </section>
+
+  <!-- HOW -->
+  <section id="how" class="how">
+    <h2>Comment ça marche</h2>
+    <div class="steps">
+      <div class="step"><div class="num">1</div><h4>Tu t'inscris</h4><p>Compte gratuit en 10 secondes, pseudo + mot de passe.</p></div>
+      <div class="step"><div class="num">2</div><h4>Tu regardes des pubs</h4><p>Chaque pub vérifiée = +1 poids et remplit la cagnotte commune.</p></div>
+      <div class="step"><div class="num">3</div><h4>Le site achète un GTA6</h4><p>Cagnotte pleine → achat automatique d'un jeu.</p></div>
+      <div class="step"><div class="num">4</div><h4>Tirage au sort pondéré</h4><p>Un joueur est tiré au hasard, proportionnellement à son poids.</p></div>
+    </div>
+    <p class="disclaimer">⚠️ Projet démo. L'économie est simulée (les pubs et la monnaie sont fictives). En vrai, les pubs « rémunérées » passent par des régies offerwall/rewarded, et la cagnotte se remplit beaucoup plus lentement. Aucun vrai jeu n'est distribué ici.</p>
+  </section>
+</main>
+
+<footer>GTA6forall — un projet fun vibecodé. Pas affilié à Rockstar Games.</footer>
+
+<!-- MODALE AUTH -->
+<div id="auth-modal" class="modal hidden">
+  <div class="modal-box">
+    <button class="modal-close" id="auth-close">✕</button>
+    <div class="tabs">
+      <button class="tab active" data-tab="register">Inscription</button>
+      <button class="tab" data-tab="login">Connexion</button>
+    </div>
+    <input id="f-username" placeholder="Pseudo" autocomplete="username" />
+    <input id="f-password" type="password" placeholder="Mot de passe" autocomplete="current-password" />
+    <input id="f-ref" placeholder="Code de parrainage (optionnel)" />
+    <div id="auth-err" class="auth-err"></div>
+    <button class="btn btn-primary big full" id="auth-submit">Créer mon compte</button>
+  </div>
+</div>
+
+<!-- MODALE PUB -->
+<div id="ad-modal" class="modal hidden">
+  <div class="modal-box ad-box">
+    <div class="ad-screen">
+      <div class="ad-sponsor" id="ad-sponsor">Sponsor</div>
+      <div class="ad-play">▶</div>
+      <div class="ad-timer" id="ad-timer">5</div>
+      <div class="ad-tag">PUBLICITÉ</div>
+    </div>
+    <div id="ad-captcha" class="ad-captcha hidden">
+      <label id="ad-captcha-q">3 + 4 = ?</label>
+      <input id="ad-captcha-a" inputmode="numeric" placeholder="Réponse" />
+    </div>
+    <button class="btn btn-primary big full" id="ad-claim" disabled>Patiente…</button>
+    <div id="ad-err" class="auth-err"></div>
+  </div>
+</div>
+
+<!-- TOAST DROP -->
+<div id="drop-toast" class="drop-toast hidden"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
