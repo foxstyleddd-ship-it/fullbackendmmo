@@ -168,7 +168,7 @@ func (s *Store) persist() {
 var (
 	ErrTaken   = errors.New("ce pseudo est déjà pris")
 	ErrBadCred = errors.New("pseudo ou mot de passe incorrect")
-	ErrInput   = errors.New("pseudo (3+) et mot de passe (4+) requis")
+	ErrInput   = errors.New("pseudo : 3 à 20 caractères · mot de passe : 4 caractères minimum")
 )
 
 func (s *Store) Register(name, pw, refCode, ip string) (*User, string, error) {
