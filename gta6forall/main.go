@@ -32,6 +32,8 @@ func main() {
 	mux.HandleFunc("/api/state", handleState)
 	mux.HandleFunc("/api/ad/start", handleAdStart)
 	mux.HandleFunc("/api/ad/complete", handleAdComplete)
+	mux.HandleFunc("/api/ads", handleAds)
+	mux.HandleFunc("/api/ads/place", handleAdsPlace)
 
 	log.Printf("🎮 GTA6forall en écoute sur http://localhost%s", addr)
 	log.Fatal(http.ListenAndServe(addr, mux))
@@ -197,6 +199,40 @@ func handleAdComplete(w http.ResponseWriter, r *http.Request) {
 	}
 	cap, _ := strconv.Atoi(strings.TrimSpace(req.Captcha))
 	res, err := store.CompleteAd(u.ID, req.AdID, cap)
+	if err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	writeJSON(w, 200, res)
+}
+
+func handleAds(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, 200, map[string]any{
+		"slots":     store.Slots(),
+		"spotPrice": int64(SpotPrice),
+	})
+}
+
+type placeReq struct {
+	Slot  int    `json:"slot"`
+	Brand string `json:"brand"`
+	Title string `json:"title"`
+	Emoji string `json:"emoji"`
+	Color string `json:"color"`
+	Link  string `json:"link"`
+}
+
+func handleAdsPlace(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeErr(w, 405, "méthode non autorisée")
+		return
+	}
+	var req placeReq
+	if decode(r, &req) != nil {
+		writeErr(w, 400, "requête invalide")
+		return
+	}
+	res, err := store.PlaceAd(req.Slot, req.Brand, req.Title, req.Emoji, req.Color, req.Link)
 	if err != nil {
 		writeErr(w, 400, err.Error())
 		return

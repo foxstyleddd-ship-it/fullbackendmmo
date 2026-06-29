@@ -64,11 +64,12 @@ type pendingAd struct {
 }
 
 type snapshot struct {
-	Users      map[string]*User  `json:"users"`
-	Pot        int64             `json:"pot"`
-	Fee        int64             `json:"fee"`
-	GamesGiven int               `json:"gamesGiven"`
-	Winners    []Winner          `json:"winners"`
+	Users      map[string]*User `json:"users"`
+	Pot        int64            `json:"pot"`
+	Fee        int64            `json:"fee"`
+	GamesGiven int              `json:"gamesGiven"`
+	Winners    []Winner         `json:"winners"`
+	Slots      []*AdSlot        `json:"slots"`
 }
 
 type Store struct {
@@ -82,6 +83,7 @@ type Store struct {
 	fee        int64
 	gamesGiven int
 	winners    []Winner
+	slots      []*AdSlot // emplacements pub du hub (loués par les marques)
 	path       string
 }
 
@@ -95,6 +97,9 @@ func NewStore(path string) *Store {
 		path:     path,
 	}
 	s.load()
+	if len(s.slots) == 0 {
+		s.slots = seedSlots()
+	}
 	return s
 }
 
@@ -141,7 +146,7 @@ func (s *Store) load() {
 	if snap.Users != nil {
 		s.users = snap.Users
 	}
-	s.pot, s.fee, s.gamesGiven, s.winners = snap.Pot, snap.Fee, snap.GamesGiven, snap.Winners
+	s.pot, s.fee, s.gamesGiven, s.winners, s.slots = snap.Pot, snap.Fee, snap.GamesGiven, snap.Winners, snap.Slots
 	for id, u := range s.users {
 		s.byName[strings.ToLower(u.Username)] = id
 		if u.RefCode != "" {
@@ -152,7 +157,7 @@ func (s *Store) load() {
 
 // persist must be called with the lock held.
 func (s *Store) persist() {
-	snap := snapshot{Users: s.users, Pot: s.pot, Fee: s.fee, GamesGiven: s.gamesGiven, Winners: s.winners}
+	snap := snapshot{Users: s.users, Pot: s.pot, Fee: s.fee, GamesGiven: s.gamesGiven, Winners: s.winners, Slots: s.slots}
 	data, err := json.MarshalIndent(snap, "", "  ")
 	if err != nil {
 		return
@@ -250,6 +255,21 @@ var sponsors = []string{
 	"eCola Zéro", "Ammu-Nation", "Lifeinvader Pro", "Bean Machine Café",
 }
 
+// pickSponsor privilégie une marque réellement présente dans le hub, sinon
+// retombe sur la liste par défaut. Doit être appelé avec le lock tenu.
+func (s *Store) pickSponsor() string {
+	var filled []string
+	for _, sl := range s.slots {
+		if sl.Filled {
+			filled = append(filled, sl.Brand)
+		}
+	}
+	if len(filled) > 0 {
+		return filled[randInt(int64(len(filled)))]
+	}
+	return sponsors[randInt(int64(len(sponsors)))]
+}
+
 type AdStart struct {
 	AdID        string `json:"adId"`
 	Duration    int    `json:"duration"`
@@ -269,7 +289,7 @@ func (s *Store) StartAd(userID string) (*AdStart, error) {
 		return nil, errors.New("patiente quelques secondes avant la prochaine pub")
 	}
 	adID := token(8)
-	sponsor := sponsors[randInt(int64(len(sponsors)))]
+	sponsor := s.pickSponsor()
 	pa := &pendingAd{UserID: userID, StartAt: time.Now(), Sponsor: sponsor}
 	out := &AdStart{AdID: adID, Duration: AdDuration, Sponsor: sponsor}
 	// captcha "humain" un coup sur trois pour ne pas être lourd
@@ -351,7 +371,16 @@ func (s *Store) CompleteAd(userID, adID string, captcha int) (*WatchResult, erro
 	s.fee += fee
 	s.pot += reward - fee
 
-	res := &WatchResult{}
+	res := &WatchResult{NewWins: s.runDrops()}
+	s.persist()
+	res.Reward, res.Weight, res.Earned = reward, u.Weight, u.Earned
+	return res, nil
+}
+
+// runDrops vide la cagnotte tant qu'elle dépasse le prix d'un GTA6 et tire un
+// gagnant pondéré à chaque fois. Doit être appelé avec le lock tenu.
+func (s *Store) runDrops() []Winner {
+	var wins []Winner
 	for s.pot >= GamePrice {
 		s.pot -= GamePrice
 		s.gamesGiven++
@@ -361,11 +390,9 @@ func (s *Store) CompleteAd(userID, adID string, captcha int) (*WatchResult, erro
 		if len(s.winners) > 50 {
 			s.winners = s.winners[:50]
 		}
-		res.NewWins = append(res.NewWins, win)
+		wins = append(wins, win)
 	}
-	s.persist()
-	res.Reward, res.Weight, res.Earned = reward, u.Weight, u.Earned
-	return res, nil
+	return wins
 }
 
 // drawWinner : tirage pondéré par le poids parmi ceux qui ont regardé.
