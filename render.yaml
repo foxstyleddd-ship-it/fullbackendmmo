@@ -1,0 +1,13 @@
+# Déploiement 1-clic de GTA6forall sur Render (https://render.com)
+# Sur le téléphone : render.com → New → Blueprint → choisis ce repo → Apply.
+services:
+  - type: web
+    name: gta6forall
+    runtime: go
+    rootDir: gta6forall
+    plan: free
+    buildCommand: go build -o app .
+    startCommand: ./app
+    envVars:
+      - key: GO_VERSION
+        value: "1.22"
