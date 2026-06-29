@@ -23,7 +23,7 @@ func main() {
 
 	sub, _ := fs.Sub(staticFS, "static")
 	mux := http.NewServeMux()
-	mux.Handle("/", http.FileServer(http.FS(sub)))
+	mux.Handle("/", noCache(http.FileServer(http.FS(sub))))
 
 	mux.HandleFunc("/api/register", handleRegister)
 	mux.HandleFunc("/api/login", handleLogin)
@@ -37,6 +37,15 @@ func main() {
 
 	log.Printf("🎮 GTA6forall en écoute sur http://localhost%s", addr)
 	log.Fatal(http.ListenAndServe(addr, mux))
+}
+
+// noCache empêche les navigateurs de servir une vieille version des assets
+// pendant qu'on itère (sinon on ne voit pas ses changements).
+func noCache(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		h.ServeHTTP(w, r)
+	})
 }
 
 func env(k, def string) string {
