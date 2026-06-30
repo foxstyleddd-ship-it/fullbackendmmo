@@ -88,6 +88,7 @@ type Store struct {
 	chat       []ChatMsg
 	chatLast   map[string]time.Time // anti-spam tchat : dernier message par user
 	rewardTxns map[string]bool      // idempotence des postbacks de régie
+	dirty      bool                 // changements en attente d'écriture disque
 	path       string
 }
 
@@ -161,10 +162,24 @@ func (s *Store) load() {
 	}
 }
 
-// persist must be called with the lock held.
+// persist marque l'état comme « à écrire ». L'écriture disque réelle est faite
+// en arrière-plan par flush() pour ne pas bloquer les requêtes. Appelé sous lock.
 func (s *Store) persist() {
+	s.dirty = true
+}
+
+// flush écrit l'état sur disque s'il a changé. Le marshal se fait sous lock
+// (rapide), l'I/O disque hors lock (lent) pour ne pas bloquer les requêtes.
+func (s *Store) flush() {
+	s.mu.Lock()
+	if !s.dirty {
+		s.mu.Unlock()
+		return
+	}
 	snap := snapshot{Users: s.users, Pot: s.pot, Fee: s.fee, GamesGiven: s.gamesGiven, Winners: s.winners, Slots: s.slots, Chat: s.chat}
 	data, err := json.MarshalIndent(snap, "", "  ")
+	s.dirty = false
+	s.mu.Unlock()
 	if err != nil {
 		return
 	}
@@ -172,6 +187,17 @@ func (s *Store) persist() {
 	if os.WriteFile(tmp, data, 0o644) == nil {
 		os.Rename(tmp, s.path)
 	}
+}
+
+// StartFlusher lance l'écriture périodique en arrière-plan.
+func (s *Store) StartFlusher(every time.Duration) {
+	go func() {
+		t := time.NewTicker(every)
+		defer t.Stop()
+		for range t.C {
+			s.flush()
+		}
+	}()
 }
 
 // --- auth ------------------------------------------------------------------

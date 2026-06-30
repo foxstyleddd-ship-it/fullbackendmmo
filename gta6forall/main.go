@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"encoding/json"
 	"io/fs"
@@ -8,8 +9,11 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
+	"time"
 )
 
 //go:embed static/*
@@ -41,9 +45,50 @@ func main() {
 	mux.HandleFunc("/api/admin/slot/clear", handleAdminClear)
 	mux.HandleFunc("/api/admin/simulate-reward", handleAdminSimulate)
 	mux.HandleFunc("/admin", servePage("admin.html"))
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok")) })
+
+	// écriture disque périodique en arrière-plan (hors du chemin des requêtes)
+	store.StartFlusher(2 * time.Second)
+
+	srv := &http.Server{
+		Addr:              addr,
+		Handler:           recoverPanic(mux),
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       20 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       90 * time.Second,
+	}
+
+	// arrêt propre : on flush les données avant de quitter (redéploiement Render)
+	go func() {
+		stop := make(chan os.Signal, 1)
+		signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
+		<-stop
+		log.Println("arrêt en cours, sauvegarde…")
+		store.flush()
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		srv.Shutdown(ctx)
+	}()
 
 	log.Printf("🎮 GTA6forall en écoute sur http://localhost%s", addr)
-	log.Fatal(http.ListenAndServe(addr, mux))
+	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Fatal(err)
+	}
+	store.flush()
+}
+
+// recoverPanic empêche qu'une panique dans un handler ne perturbe le serveur.
+func recoverPanic(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if rec := recover(); rec != nil {
+				log.Printf("panique récupérée sur %s: %v", r.URL.Path, rec)
+				http.Error(w, `{"error":"erreur interne"}`, http.StatusInternalServerError)
+			}
+		}()
+		h.ServeHTTP(w, r)
+	})
 }
 
 // noCache empêche les navigateurs de servir une vieille version des assets
